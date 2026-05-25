@@ -25,9 +25,15 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// リクエスト：キャッシュ優先、なければネットワーク
+// リクエスト：ネットワーク優先、オフライン時はキャッシュ
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request)
+      .then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
