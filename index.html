@@ -517,9 +517,94 @@ body {
   font-size: 11px; font-weight: 700; text-decoration: none; cursor: pointer;
 }
 .em-cc-none { font-size: 10px; color: rgba(255,255,255,.22); text-align: center; padding: 2px 0; }
+
+/* ============================================================
+   PIN LOCK SCREEN
+   ============================================================ */
+#pin-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(175deg, var(--navy-dark) 0%, var(--navy) 55%, var(--sky) 130%);
+  padding-bottom: 40px;
+}
+#pin-screen.hidden { display: none; }
+.pin-logo {
+  width: 76px; height: 76px; border-radius: 20px;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; margin-bottom: 18px;
+}
+.pin-title { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: .04em; }
+.pin-subtitle { font-size: 13px; color: rgba(255,255,255,.6); margin-top: 4px; margin-bottom: 36px; }
+.pin-dots { display: flex; gap: 16px; margin-bottom: 40px; }
+.pin-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.5);
+  background: transparent; transition: background .15s;
+}
+.pin-dot.filled { background: #fff; border-color: #fff; }
+.pin-dot.error { border-color: #FF4444; background: #FF4444; }
+.pin-keypad {
+  display: grid; grid-template-columns: repeat(3, 72px);
+  gap: 14px;
+}
+.pin-key {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.15);
+  color: #fff; font-size: 24px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+  transition: background .1s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pin-key:active { background: rgba(255,255,255,.28); transform: scale(.93); }
+.pin-key.empty { background: transparent; border: none; pointer-events: none; }
+.pin-key.del { font-size: 20px; }
+.pin-error-msg {
+  margin-top: 24px; font-size: 13px; color: #FF6B6B;
+  min-height: 18px; text-align: center;
+}
+@keyframes pinShake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)}
+  60%{transform:translateX(-6px)}
+  80%{transform:translateX(6px)}
+}
+.pin-dots.shake { animation: pinShake .35s ease; }
 </style>
 </head>
 <body>
+
+<!-- ====================================================
+     PIN LOCK
+     ==================================================== -->
+<div id="pin-screen">
+  <div class="pin-logo">🔐</div>
+  <div class="pin-title">Family Vault</div>
+  <div class="pin-subtitle">暗証番号を入力してください</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-keypad">
+    <div class="pin-key" onclick="pinInput('1')">1</div>
+    <div class="pin-key" onclick="pinInput('2')">2</div>
+    <div class="pin-key" onclick="pinInput('3')">3</div>
+    <div class="pin-key" onclick="pinInput('4')">4</div>
+    <div class="pin-key" onclick="pinInput('5')">5</div>
+    <div class="pin-key" onclick="pinInput('6')">6</div>
+    <div class="pin-key" onclick="pinInput('7')">7</div>
+    <div class="pin-key" onclick="pinInput('8')">8</div>
+    <div class="pin-key" onclick="pinInput('9')">9</div>
+    <div class="pin-key empty"></div>
+    <div class="pin-key" onclick="pinInput('0')">0</div>
+    <div class="pin-key del" onclick="pinDelete()">⌫</div>
+  </div>
+  <div class="pin-error-msg" id="pin-error"></div>
+</div>
 
 <!-- ====================================================
      LOGIN
@@ -867,6 +952,49 @@ body {
 </div>
 
 <script>
+// ===== PIN LOCK =====
+const PIN_CODE = '0630';
+let pinCurrent = '';
+
+function pinInput(d) {
+  if (pinCurrent.length >= 4) return;
+  pinCurrent += d;
+  updatePinDots();
+  if (pinCurrent.length === 4) {
+    setTimeout(checkPin, 80);
+  }
+}
+function pinDelete() {
+  if (pinCurrent.length === 0) return;
+  pinCurrent = pinCurrent.slice(0, -1);
+  updatePinDots();
+}
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pd' + i);
+    dot.classList.toggle('filled', i < pinCurrent.length);
+    dot.classList.remove('error');
+  }
+  document.getElementById('pin-error').textContent = '';
+}
+function checkPin() {
+  if (pinCurrent === PIN_CODE) {
+    document.getElementById('pin-screen').classList.add('hidden');
+  } else {
+    const dots = document.getElementById('pin-dots');
+    for (let i = 0; i < 4; i++) {
+      document.getElementById('pd' + i).classList.add('error');
+    }
+    dots.classList.add('shake');
+    document.getElementById('pin-error').textContent = '暗証番号が違います';
+    setTimeout(() => {
+      dots.classList.remove('shake');
+      pinCurrent = '';
+      updatePinDots();
+    }, 400);
+  }
+}
+
 // ===== CONSTANTS =====
 const USERS = {
   yoji:   {name:'洋司', role:'夫',  icon:'👨', color:'#0062C4', cls:'yoji'},
