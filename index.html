@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Family Vault 〜家族のデジタル金庫〜</title>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#003087">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- iOS Safari 用 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Family Vault">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<style>
+/* ============================================================
+   DESIGN TOKENS — ANA Mileage Club inspired
+   White-first, navy accent, sky-blue highlight
+   ============================================================ */
+:root {
+  /* Brand */
+  --navy:      #003087;
+  --navy-dark: #001A5C;
+  --navy-mid:  #0044BB;
+  --sky:       #0093D0;
+  --sky-pale:  #E6F4FB;
+  /* Backgrounds */
+  --bg:        #F5F6F8;
+  --surface:   #FFFFFF;
+  /* Text */
+  --text:      #0D1B3E;
+  --text2:     #576070;
+  --text3:     #A8B2BE;
+  /* UI */
+  --sep:       #E8ECF1;
+  --sep2:      #F0F3F6;
+  /* Status */
+  --danger:    #C0392B;
+  --success:   #1A8A5A;
+  --warn:      #D4820A;
+  --warn-bg:   #FEF6E7;
+  /* Owners */
+  --yoji:      #0062C4;
+  --tokiko:    #C0264A;
+  --miori:     #9B59B6;
+  --haruma:    #27AE60;
+  /* Radius */
+  --r-xl: 20px;
+  --r-lg: 14px;
+  --r-md: 10px;
+  --r-sm: 6px;
+  /* Shadow */
+  --sh-xs: 0 1px 3px rgba(13,27,62,.07);
+  --sh-sm: 0 2px 8px rgba(13,27,62,.09);
+  --sh-md: 0 4px 16px rgba(13,27,62,.12);
+  --sh-lg: 0 8px 28px rgba(13,27,62,.16);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 430px;
+  margin: 0 auto;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   TAB BAR — white, top border, navy selected
+   ============================================================ */
+.tab-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  background: var(--surface);
+  border-top: 1px solid var(--sep);
+  display: flex; z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -1px 0 var(--sep), 0 -4px 16px rgba(13,27,62,.05);
+}
+.tab-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 10px 0 6px; cursor: pointer; position: relative; gap: 3px;
+  transition: opacity .12s;
+}
+.tab-item.active::after {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 28px; height: 2px; background: var(--navy); border-radius: 0 0 2px 2px;
+}
+.tab-icon  { font-size: 21px; color: var(--text3); transition: color .12s; }
+.tab-label { font-size: 10px; color: var(--text3); font-weight: 600; letter-spacing: .2px; transition: color .12s; }
+.tab-item.active .tab-icon,
+.tab-item.active .tab-label { color: var(--navy); }
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+.screen { display: none; padding-bottom: 84px; min-height: 100vh; }
+.screen.active { display: block; }
+#screen-login.active { display: flex; }
+.status-bar { height: 50px; }
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+#screen-login {
+  flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding-bottom: 0;
+  background: linear-gradient(175deg, var(--navy-dark) 0%, var(--navy) 55%, var(--sky) 130%);
+}
+.login-logo-wrap {
+  width: 76px; height: 76px; border-radius: 20px;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; margin-bottom: 18px;
+  backdrop-filter: blur(8px);
+}
+.login-title    { font-size: 36px; font-weight: 800; color: #fff; letter-spacing: -1.5px; margin-bottom: 6px; }
+.login-subtitle { font-size: 13px; font-weight: 400; color: rgba(255,255,255,.4); letter-spacing: .5px; margin-bottom: 8px; }
+.login-sub      { font-size: 13px; color: rgba(255,255,255,.5); margin-bottom: 48px; }
+
+.login-divider { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.35); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; }
+.user-cards { display: flex; gap: 12px; padding: 0 28px; width: 100%; }
+.user-card {
+  flex: 1; background: rgba(255,255,255,.11);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 18px;
+  padding: 24px 10px 18px; display: flex; flex-direction: column;
+  align-items: center; gap: 10px; cursor: pointer;
+  backdrop-filter: blur(10px); transition: transform .13s, background .13s;
+}
+.user-card:active { transform: scale(0.96); background: rgba(255,255,255,.22); }
+.user-card.yoji   { border-color: rgba(100,180,255,.4); }
+.user-card.tokiko { border-color: rgba(255,100,160,.35); }
+.user-cards { display: grid !important; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 28px; width: 100%; }
+.ua { width: 56px; height: 56px; border-radius: 50%; font-size: 26px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid rgba(255,255,255,.22); }
+.ua.yoji   { background: rgba(0,98,196,.3); }
+.ua.tokiko { background: rgba(192,38,74,.3); }
+.ua.miori  { background: rgba(155,89,182,.3); }
+.ua.haruma { background: rgba(39,174,96,.3); }
+.user-card.miori  { border-color: rgba(180,130,255,.4); }
+.user-card.haruma { border-color: rgba(80,210,120,.35); }
+.uc-name { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -.3px; }
+.uc-role { font-size: 11px; color: rgba(255,255,255,.45); font-weight: 600; letter-spacing: .5px; }
+
+/* ============================================================
+   NAVY HEADER (top of each main screen)
+   ============================================================ */
+.nav-header {
+  background: linear-gradient(160deg, var(--navy-dark) 0%, var(--navy) 100%);
+  padding: 0 20px 22px; position: relative; overflow: hidden;
+}
+.nav-header::before {
+  content: ''; position: absolute; right: -40px; top: -40px;
+  width: 180px; height: 180px; border-radius: 50%;
+  background: rgba(255,255,255,.04); pointer-events: none;
+}
+.nh-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 10px; margin-bottom: 16px;
+}
+.nh-brand { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.4); letter-spacing: 2px; text-transform: uppercase; }
+.nh-title { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -.5px; }
+.nh-add {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
+  color: #fff; font-size: 20px; display: flex; align-items: center;
+  justify-content: center; cursor: pointer; transition: background .12s;
+}
+.nh-add:hover    { background: rgba(255,255,255,.24); }
+.nh-add:disabled { opacity: .35; cursor: default; }
+
+/* ============================================================
+   USER SWITCH BAR — white, clean
+   ============================================================ */
+.user-bar {
+  background: var(--surface); border-bottom: 1px solid var(--sep);
+  padding: 0 16px; height: 44px; display: flex; align-items: center;
+  position: sticky; top: 0; z-index: 50;
+  box-shadow: var(--sh-xs);
+}
+.ub-left { display: flex; align-items: center; gap: 7px; flex: 1; }
+.ub-avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.ub-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.ub-chip { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 700; }
+.ub-chip.self    { background: var(--sky-pale); color: var(--navy); }
+.ub-chip.viewing { background: #FDEEF3; color: var(--tokiko); }
+.ub-div { width: 1px; height: 18px; background: var(--sep); margin: 0 10px; }
+.view-switch { display: flex; background: var(--bg); border-radius: 20px; padding: 2px; }
+.vs-btn {
+  font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 16px;
+  border: none; background: transparent; cursor: pointer; color: var(--text2); transition: all .13s;
+}
+.vs-btn.on-yoji   { background: var(--yoji);   color: #fff; }
+.vs-btn.on-tokiko { background: var(--tokiko); color: #fff; }
+.vs-btn.on-miori  { background: var(--miori);  color: #fff; }
+.vs-btn.on-haruma { background: var(--haruma); color: #fff; }
+.view-notice {
+  background: var(--warn-bg); border-bottom: 1px solid #F2C96E;
+  padding: 5px 16px; font-size: 11px; color: var(--warn); font-weight: 700;
+  text-align: center; display: none;
+}
+.view-notice.show { display: block; }
+
+/* ============================================================
+   SECTION LABEL
+   ============================================================ */
+.sec-label {
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  letter-spacing: 1.2px; text-transform: uppercase; padding: 20px 18px 8px;
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card { background: var(--surface); border-radius: var(--r-lg); margin: 0 14px 10px; box-shadow: var(--sh-xs); overflow: hidden; }
+.card-row {
+  display: flex; align-items: center; padding: 13px 15px;
+  border-bottom: 1px solid var(--sep2); gap: 11px; cursor: pointer; transition: background .1s;
+}
+.card-row:last-child { border-bottom: none; }
+.card-row:active { background: var(--sky-pale); }
+.row-icon { width: 38px; height: 38px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.row-body { flex: 1; min-width: 0; }
+.row-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.row-sub   { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.row-val   { font-size: 16px; font-weight: 800; color: var(--navy); }
+.row-cyc   { font-size: 11px; color: var(--text2); text-align: right; }
+.chevron   { color: var(--text3); font-size: 12px; margin-left: 4px; flex-shrink: 0; }
+.odot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.odot.yoji   { background: var(--yoji); }
+.odot.tokiko { background: var(--tokiko); }
+
+/* ============================================================
+   HOME — TOTAL PANEL (sits inside navy header, sticks out bottom)
+   ============================================================ */
+.total-panel {
+  background: var(--surface); border-radius: var(--r-xl);
+  margin: 0 14px; padding: 18px 18px 16px;
+  box-shadow: var(--sh-md); position: relative; z-index: 2;
+}
+.tp-label  { font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.tp-amount { font-size: 40px; font-weight: 800; color: var(--navy); letter-spacing: -2px; line-height: 1; }
+.tp-amount span.yen  { font-size: 20px; font-weight: 600; letter-spacing: 0; color: var(--text2); }
+.tp-amount span.unit { font-size: 14px; font-weight: 600; color: var(--text2); letter-spacing: 0; margin-left: 2px; }
+.tp-sub { font-size: 12px; color: var(--text2); margin-top: 5px; }
+.tp-row { display: flex; margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--sep); gap: 0; }
+.tp-col { flex: 1; }
+.tp-col + .tp-col { border-left: 1px solid var(--sep); padding-left: 14px; }
+.tp-who { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
+.tp-dot { width: 6px; height: 6px; border-radius: 50%; }
+.tp-who-name { font-size: 11px; font-weight: 700; color: var(--text2); }
+.tp-val { font-size: 18px; font-weight: 800; color: var(--navy); letter-spacing: -.5px; }
+
+/* ============================================================
+   REMINDER — amber strip card
+   ============================================================ */
+.reminder-strip {
+  background: var(--warn-bg); border: 1px solid #F5D078; border-radius: var(--r-lg);
+  margin: 14px 14px 0; padding: 11px 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.rs-icon  { font-size: 20px; flex-shrink: 0; }
+.rs-title { font-size: 13px; font-weight: 700; color: #7A5200; }
+.rs-sub   { font-size: 11px; color: #A06B00; margin-top: 1px; }
+
+/* ============================================================
+   EMERGENCY BUTTON — red, clean
+   ============================================================ */
+.em-btn {
+  display: flex; align-items: center; gap: 13px;
+  background: var(--danger); border: none; border-radius: var(--r-lg);
+  margin: 14px 14px 0; padding: 14px 16px; width: calc(100% - 28px);
+  text-align: left; cursor: pointer; box-shadow: 0 4px 16px rgba(192,57,43,.3);
+  transition: box-shadow .13s;
+}
+.em-btn-icon  { font-size: 24px; }
+.em-btn-title { font-size: 14px; font-weight: 800; color: #fff; }
+.em-btn-sub   { font-size: 11px; color: rgba(255,255,255,.7); margin-top: 2px; }
+.em-btn-chev  { margin-left: auto; color: rgba(255,255,255,.5); font-size: 16px; }
+
+/* ============================================================
+   CATEGORY GRID
+   ============================================================ */
+.cat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; margin: 0 14px; }
+.cat-cell {
+  background: var(--surface); border-radius: var(--r-lg);
+  padding: 15px 8px 11px; display: flex; flex-direction: column;
+  align-items: center; gap: 6px; cursor: pointer; box-shadow: var(--sh-xs);
+  transition: transform .12s, box-shadow .12s;
+}
+.cat-cell:active { transform: scale(0.95); box-shadow: var(--sh-md); }
+.cat-icon  { font-size: 24px; }
+.cat-name  { font-size: 11px; font-weight: 700; color: var(--text); text-align: center; }
+.cat-count { font-size: 10px; color: var(--text2); font-weight: 600; }
+
+/* ============================================================
+   ITEMS HERO PANEL
+   ============================================================ */
+.items-panel {
+  background: var(--surface); border-radius: var(--r-xl);
+  margin: 0 14px; padding: 18px 18px 16px; box-shadow: var(--sh-md);
+  position: relative; z-index: 2;
+}
+.ip-label { font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.ip-count { font-size: 40px; font-weight: 800; color: #5856D6; letter-spacing: -2px; line-height: 1; }
+.ip-sub   { font-size: 12px; color: var(--text2); margin-top: 5px; }
+
+/* ============================================================
+   EMERGENCY SCREEN — dark but structured
+   ============================================================ */
+.em-screen { background: #06101F; min-height: 100vh; }
+.em-top {
+  background: linear-gradient(160deg, #09182E 0%, #0C2060 100%);
+  padding: 52px 18px 20px; position: relative;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.em-back {
+  position: absolute; top: 52px; left: 16px;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+  color: #fff; border-radius: 50%; width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 15px;
+}
+.em-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(192,57,43,.2); border: 1px solid rgba(192,57,43,.4);
+  border-radius: 20px; padding: 3px 10px; margin-bottom: 8px;
+}
+.em-dot { width: 5px; height: 5px; border-radius: 50%; background: #E74C3C; animation: blink 1.2s infinite; }
+.em-pill-txt { font-size: 10px; font-weight: 800; color: #FF8070; letter-spacing: 1px; text-transform: uppercase; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+.em-h1 { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -.5px; }
+.em-h2 { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 3px; }
+
+.alert-box {
+  background: rgba(192,57,43,.13); border: 1px solid rgba(192,57,43,.3);
+  border-radius: var(--r-lg); margin: 14px 14px 0; padding: 13px 15px;
+}
+.ab-label { font-size: 10px; font-weight: 800; color: #FF8070; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; }
+.ab-body  { font-size: 13px; color: rgba(255,255,255,.8); line-height: 1.6; }
+
+.em-sec { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.3); text-transform: uppercase; letter-spacing: 2px; padding: 16px 18px 6px; }
+.em-card { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07); border-radius: var(--r-lg); margin: 0 14px 10px; overflow: hidden; }
+.em-row  { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,.05); gap: 11px; cursor: pointer; }
+.em-row:last-child { border-bottom: none; }
+.em-row:active { background: rgba(255,255,255,.05); }
+.em-check { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.25); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .18s; }
+.em-check.done { background: var(--success); border-color: var(--success); }
+.em-check.done::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 700; }
+.em-task-title { font-size: 13px; color: rgba(255,255,255,.85); font-weight: 600; line-height: 1.4; }
+.em-task-title.done { opacity: .4; text-decoration: line-through; }
+.em-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; margin-top: 3px; display: inline-block; }
+.eb-high { background: rgba(192,57,43,.3);  color: #FF8070; }
+.eb-mid  { background: rgba(212,130,10,.25); color: #FFB84D; }
+.eb-low  { background: rgba(26,138,90,.2);   color: #50CFA0; }
+.em-tag { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 700; margin-left: 5px; vertical-align: middle; }
+.em-tag.yoji   { background: rgba(0,98,196,.3);  color: #70AAFF; }
+.em-tag.tokiko { background: rgba(192,38,74,.3); color: #FF90BB; }
+
+.em-toggle-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07); border-radius: var(--r-lg); margin: 10px 14px 2px; padding: 12px 15px; }
+.et-label { font-size: 13px; color: rgba(255,255,255,.75); font-weight: 600; }
+.toggle { width: 46px; height: 27px; background: rgba(255,255,255,.15); border-radius: 14px; position: relative; cursor: pointer; transition: background .18s; flex-shrink: 0; }
+.toggle.on { background: var(--success); }
+.toggle::after { content: ''; position: absolute; width: 23px; height: 23px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: left .18s; box-shadow: 0 2px 5px rgba(0,0,0,.25); }
+.toggle.on::after { left: 21px; }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(6,16,31,.55);
+  backdrop-filter: blur(5px); z-index: 200; display: none; align-items: flex-end;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 22px 22px 0 0;
+  width: 100%; max-width: 430px; margin: 0 auto;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom,0px));
+  max-height: 88vh; overflow-y: auto;
+}
+.m-handle { width: 34px; height: 4px; background: var(--sep); border-radius: 2px; margin: 0 auto 18px; }
+.m-title  { font-size: 19px; font-weight: 800; color: var(--text); margin-bottom: 18px; letter-spacing: -.3px; }
+.fg { margin-bottom: 13px; }
+.fl { font-size: 11px; font-weight: 700; color: var(--text2); margin-bottom: 5px; display: block; letter-spacing: .6px; text-transform: uppercase; }
+.fi {
+  width: 100%; border: 1.5px solid var(--sep); border-radius: var(--r-md);
+  padding: 11px 13px; font-size: 15px; font-family: inherit;
+  color: var(--text); outline: none; background: var(--bg); transition: border-color .15s, box-shadow .15s;
+}
+.fi:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(0,48,135,.1); }
+.fi-sel { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23576070' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 36px; }
+.f-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-p {
+  width: 100%; background: var(--navy); color: #fff; border: none;
+  border-radius: var(--r-md); padding: 13px; font-size: 15px; font-weight: 700;
+  cursor: pointer; margin-top: 8px; transition: background .13s;
+}
+.btn-p:hover   { background: var(--navy-mid); }
+.btn-danger    { background: var(--danger); }
+.btn-danger:hover { background: #A93226; }
+.btn-ghost     { background: var(--bg); color: var(--text2); margin-top: 8px; }
+.btn-ghost:hover { background: var(--sep); }
+.d-row { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--sep2); }
+.d-row:last-child { border-bottom: none; }
+.d-key { font-size: 13px; color: var(--text2); flex-shrink: 0; }
+.d-val { font-size: 13px; font-weight: 700; text-align: right; max-width: 60%; word-break: break-all; color: var(--text); }
+.d-url {
+  font-size: 12px; font-weight: 700; color: var(--navy);
+  text-align: right; word-break: break-all; max-width: 65%;
+  text-decoration: none; display: block;
+  background: var(--sky-pale); border-radius: var(--r-sm);
+  padding: 5px 9px; margin-left: 8px; line-height: 1.4;
+}
+.d-url:active { background: #D0EAF8; }
+.url-hint { font-size: 11px; color: var(--success); margin-top: 4px; }
+
+.scroll-pad { height: 18px; }
+
+/* fade-up enter */
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+.screen.active>*      { animation: fadeUp .22s ease both; }
+.screen.active>*:nth-child(2) { animation-delay:.04s; }
+.screen.active>*:nth-child(3) { animation-delay:.08s; }
+.screen.active>*:nth-child(4) { animation-delay:.12s; }
+.screen.active>*:nth-child(5) { animation-delay:.16s; }
+.screen.active>*:nth-child(6) { animation-delay:.20s; }
+
+/* ============================================================
+   FAMILY CONTACTS — home strip
+   ============================================================ */
+.contact-strip {
+  display: flex; gap: 9px; margin: 0 14px;
+  overflow-x: auto; padding-bottom: 3px;
+  -webkit-overflow-scrolling: touch;
+}
+.contact-strip::-webkit-scrollbar { display: none; }
+.cs-card {
+  background: var(--surface); border-radius: var(--r-lg);
+  padding: 12px 12px 10px; box-shadow: var(--sh-xs);
+  flex-shrink: 0; width: 130px;
+}
+.cs-head { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+.cs-av   { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.cs-name { font-size: 13px; font-weight: 800; color: var(--text); }
+.cs-role { font-size: 10px; color: var(--text2); }
+.cs-phone { font-size: 11px; color: var(--text2); margin-bottom: 7px; min-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs-call  { display: block; text-align: center; background: var(--sky-pale); color: var(--navy); border: none; border-radius: var(--r-sm); padding: 5px 8px; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: none; }
+.cs-none  { font-size: 10px; color: var(--text3); text-align: center; }
+
+/* ============================================================
+   FAMILY CONTACTS — contacts screen
+   ============================================================ */
+.contact-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 14px;
+}
+.contact-card {
+  background: var(--surface); border-radius: var(--r-lg);
+  padding: 16px 13px 13px; box-shadow: var(--sh-xs);
+  display: flex; flex-direction: column; gap: 9px;
+}
+.cc-top { display: flex; align-items: center; gap: 9px; }
+.cc-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.cc-name { font-size: 15px; font-weight: 800; color: var(--text); }
+.cc-role { font-size: 11px; color: var(--text2); font-weight: 600; }
+.cc-detail {
+  padding-top: 8px; border-top: 1px solid var(--sep2);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.cc-row   { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+.cc-val   { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.cc-empty { color: var(--text3); }
+.cc-btns  { display: flex; gap: 6px; }
+.cc-call-btn {
+  flex: 1; text-align: center; background: var(--sky-pale); color: var(--navy);
+  border: none; border-radius: var(--r-sm); padding: 7px 5px;
+  font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: none; display: block;
+}
+.cc-edit-btn {
+  width: 100%; background: var(--bg); color: var(--text2); border: none;
+  border-radius: var(--r-sm); padding: 7px; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.cc-edit-btn:active { background: var(--sep); }
+
+/* ============================================================
+   FAMILY CONTACTS — emergency screen
+   ============================================================ */
+.em-contact-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 14px 4px;
+}
+.em-cc {
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--r-lg); padding: 12px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.em-cc-head { display: flex; align-items: center; gap: 8px; }
+.em-cc-av   {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.em-cc-name { font-size: 14px; font-weight: 800; color: #fff; }
+.em-cc-role { font-size: 10px; color: rgba(255,255,255,.4); }
+.em-cc-call {
+  display: block; text-align: center;
+  background: rgba(0,147,208,.22); border: 1px solid rgba(0,147,208,.4);
+  color: #7DDEFF; border-radius: var(--r-sm); padding: 7px 5px;
+  font-size: 11px; font-weight: 700; text-decoration: none; cursor: pointer;
+}
+.em-cc-none { font-size: 10px; color: rgba(255,255,255,.22); text-align: center; padding: 2px 0; }
+</style>
+</head>
+<body>
+
+<!-- ====================================================
+     LOGIN
+     ==================================================== -->
+<div id="screen-login" class="screen active">
+  <div class="login-logo-wrap">🏦</div>
+  <div class="login-title">Family Vault</div>
+  <div class="login-subtitle">〜家族のデジタル金庫〜</div>
+  <div class="login-sub">家族の大切な情報をひとつに</div>
+  <div class="login-divider">ログインするユーザーを選択</div>
+  <div class="user-cards">
+    <div class="user-card yoji"   onclick="selectUser('yoji')">
+      <div class="ua yoji">👨</div>
+      <div class="uc-name">洋司</div>
+      <div class="uc-role">夫</div>
+    </div>
+    <div class="user-card tokiko" onclick="selectUser('tokiko')">
+      <div class="ua tokiko">👩</div>
+      <div class="uc-name">季子</div>
+      <div class="uc-role">妻</div>
+    </div>
+    <div class="user-card miori"  onclick="selectUser('miori')">
+      <div class="ua miori">👧</div>
+      <div class="uc-name">美織</div>
+      <div class="uc-role">長女</div>
+    </div>
+    <div class="user-card haruma" onclick="selectUser('haruma')">
+      <div class="ua haruma">👦</div>
+      <div class="uc-name">春馬</div>
+      <div class="uc-role">長男</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================
+     HOME
+     ==================================================== -->
+<div id="screen-home" class="screen">
+  <!-- Navy header -->
+  <div class="nav-header">
+    <div class="status-bar"></div>
+    <div class="nh-top">
+      <div>
+        <div class="nh-brand">Family Vault</div>
+        <div class="nh-title">ホーム</div>
+      </div>
+      <button class="nh-add" onclick="openModal('modal-settings')" title="設定">⚙️</button>
+    </div>
+  </div>
+  <!-- User bar -->
+  <div id="ub-home"></div>
+  <div id="vb-home" class="view-notice"></div>
+  <!-- Total panel — overlaps header bottom -->
+  <div style="padding: 14px 0 0;">
+    <div class="total-panel">
+      <div class="tp-label">月額固定費 — 家族合計</div>
+      <div class="tp-amount"><span class="yen">¥</span><span id="total-num">0</span></div>
+      <div class="tp-sub" id="total-sub">0件のサービス契約中</div>
+      <div id="member-totals"></div>
+    </div>
+  </div>
+
+  <!-- Family contacts strip -->
+  <div class="sec-label">👪 家族の連絡先</div>
+  <div class="contact-strip" id="home-contact-strip"></div>
+
+  <!-- Subscription list -->
+  <div class="sec-label" id="sub-list-label">サービス一覧</div>
+  <div class="card" id="sub-list"></div>
+
+  <!-- Emergency -->
+  <button class="em-btn" onclick="goEmergency()">
+    <div class="em-btn-icon">🆘</div>
+    <div>
+      <div class="em-btn-title">もしもの時モード</div>
+      <div class="em-btn-sub">夫婦の全データを緊急開示（家族向け）</div>
+    </div>
+    <div class="em-btn-chev">›</div>
+  </button>
+  <div class="scroll-pad"></div>
+</div>
+
+<!-- ====================================================
+     ASSETS
+     ==================================================== -->
+<div id="screen-assets" class="screen">
+  <div class="nav-header">
+    <div class="status-bar"></div>
+    <div class="nh-top">
+      <div>
+        <div class="nh-brand">Family Vault</div>
+        <div class="nh-title">契約・資産</div>
+      </div>
+      <button class="nh-add" id="assets-add-btn" onclick="openModal('modal-add-asset')">＋</button>
+    </div>
+  </div>
+  <div id="ub-assets"></div>
+  <div id="vb-assets" class="view-notice"></div>
+
+  <div class="sec-label">カテゴリー</div>
+  <div class="cat-grid" id="cat-grid"></div>
+  <div class="sec-label" id="asset-list-hdr" style="display:none;"></div>
+  <div class="card" id="asset-list" style="display:none;"></div>
+  <div class="scroll-pad"></div>
+</div>
+
+<!-- ====================================================
+     ITEMS
+     ==================================================== -->
+<div id="screen-items" class="screen">
+  <div class="nav-header">
+    <div class="status-bar"></div>
+    <div class="nh-top">
+      <div>
+        <div class="nh-brand">Family Vault</div>
+        <div class="nh-title">重要物メモ</div>
+      </div>
+      <button class="nh-add" id="items-add-btn" onclick="openModal('modal-add-item')">＋</button>
+    </div>
+  </div>
+  <div id="ub-items"></div>
+  <div id="vb-items" class="view-notice"></div>
+  <div style="padding: 14px 0 0;">
+    <div class="items-panel">
+      <div class="ip-label">登録済みの重要物</div>
+      <div class="ip-count" id="item-count">0</div>
+      <div class="ip-sub" id="item-sub">件</div>
+    </div>
+  </div>
+  <div class="sec-label">保管場所リスト</div>
+  <div class="card" id="item-list"></div>
+  <div class="scroll-pad"></div>
+</div>
+
+<!-- ====================================================
+     EMERGENCY
+     ==================================================== -->
+<div id="screen-emergency" class="screen em-screen">
+  <div class="em-top">
+    <button class="em-back" onclick="showScreen('home')">←</button>
+    <div class="em-pill"><div class="em-dot"></div><div class="em-pill-txt">Emergency</div></div>
+    <div class="em-h1">もしもの時モード</div>
+    <div class="em-h2">家族の全データ緊急開示ダッシュボード</div>
+  </div>
+
+  <div class="alert-box">
+    <div class="ab-label">🔐 最優先確認事項</div>
+    <div class="ab-body">スマホのロック解除パスコードの保管場所を事前にメモしておくこと。<br>保管場所: <strong>書斎デスク引き出し・封筒（緊急時用）</strong></div>
+  </div>
+
+  <div class="em-sec">📞 家族の連絡先</div>
+  <div class="em-contact-grid" id="em-contacts"></div>
+
+  <div class="em-toggle-row">
+    <span class="et-label">👧 子ども関連タスクも表示</span>
+    <div class="toggle" id="child-toggle" onclick="toggleChild()"></div>
+  </div>
+
+  <div class="em-sec">今すぐやること（自動生成）</div>
+  <div class="em-card" id="em-tasks"></div>
+
+  <div class="em-sec">家族の契約・資産</div>
+  <div class="em-card" id="em-assets"></div>
+
+  <div class="em-sec">家族の重要物</div>
+  <div class="em-card" id="em-items"></div>
+  <div class="scroll-pad"></div>
+</div>
+
+<!-- ====================================================
+     CONTACTS
+     ==================================================== -->
+<div id="screen-contacts" class="screen">
+  <div class="nav-header">
+    <div class="status-bar"></div>
+    <div class="nh-top">
+      <div>
+        <div class="nh-brand">Family Vault</div>
+        <div class="nh-title">家族の連絡先</div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:14px 0 0;">
+    <div style="background:var(--warn-bg);border:1px solid #F5D078;border-radius:var(--r-lg);margin:0 14px;padding:12px 14px;display:flex;align-items:center;gap:11px;">
+      <span style="font-size:22px;">📞</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#7A5200;">緊急時の最重要情報</div>
+        <div style="font-size:11px;color:#A06B00;margin-top:2px;">電話番号・LINEを登録してすぐ連絡できるようにしましょう</div>
+      </div>
+    </div>
+  </div>
+  <div class="sec-label">家族メンバー</div>
+  <div class="contact-grid" id="contact-grid"></div>
+  <div class="scroll-pad"></div>
+</div>
+
+<!-- ====================================================
+     TAB BAR
+     ==================================================== -->
+<nav class="tab-bar" id="tab-bar" style="display:none;">
+  <div class="tab-item active" id="tab-home"   onclick="showScreen('home')">
+    <div class="tab-icon">🏠</div><div class="tab-label">ホーム</div>
+  </div>
+  <div class="tab-item"        id="tab-assets" onclick="showScreen('assets')">
+    <div class="tab-icon">🗂️</div><div class="tab-label">契約・資産</div>
+  </div>
+  <div class="tab-item"        id="tab-items"    onclick="showScreen('items')">
+    <div class="tab-icon">📦</div><div class="tab-label">重要物メモ</div>
+  </div>
+  <div class="tab-item"        id="tab-contacts" onclick="showScreen('contacts')">
+    <div class="tab-icon">👪</div><div class="tab-label">家族</div>
+  </div>
+</nav>
+
+<!-- ====================================================
+     MODALS
+     ==================================================== -->
+<!-- Add subscription -->
+<div class="modal-overlay" id="modal-add-sub" onclick="closeOut(event,'modal-add-sub')">
+  <div class="modal">
+    <div class="m-handle"></div>
+    <div class="m-title" id="m-sub-title">サービスを追加</div>
+    <div class="fg"><label class="fl">サービス名</label><input class="fi" id="sub-name" placeholder="例: Netflix" /></div>
+    <div class="f-row2">
+      <div class="fg"><label class="fl">金額（円）</label><input class="fi" id="sub-price" type="number" placeholder="1490" /></div>
+      <div class="fg"><label class="fl">サイクル</label><select class="fi fi-sel" id="sub-cycle"><option>月額</option><option>年額</option></select></div>
+    </div>
+    <div class="fg"><label class="fl">カテゴリー</label><select class="fi fi-sel" id="sub-cat"><option>動画</option><option>音楽</option><option>習い事</option><option>通信</option><option>光熱費</option><option>その他</option></select></div>
+    <div class="fg"><label class="fl">支払い方法</label><input class="fi" id="sub-pay" placeholder="例: 三井住友カード" /></div>
+    <div class="fg"><label class="fl">次回更新日</label><input class="fi" id="sub-date" type="date" /></div>
+    <button class="btn-p" id="sub-submit-btn" onclick="addSub()">追加する</button>
+    <button class="btn-p btn-ghost" onclick="cancelSubForm()">キャンセル</button>
+  </div>
+</div>
+<!-- Sub detail -->
+<div class="modal-overlay" id="modal-sub-dtl" onclick="closeOut(event,'modal-sub-dtl')">
+  <div class="modal">
+    <div class="m-handle"></div>
+    <div class="m-title" id="dtl-sub-title">詳細</div>
+    <div id="dtl-sub-body"></div>
+    <button class="btn-p" id="dtl-sub-edit" style="display:none;">編集する</button>
+    <button class="btn-p btn-danger" id="dtl-sub-del" style="display:none;">削除する</button>
+    <button class="btn-p btn-ghost" onclick="closeModal('modal-sub-dtl')">閉じる</button>
+  </div>
+</div>
+<!-- Add asset -->
+<div class="modal-overlay" id="modal-add-asset" onclick="closeOut(event,'modal-add-asset')">
+  <div class="modal">
+    <div class="m-handle"></div>
+    <div class="m-title" id="m-asset-title">契約・資産を追加</div>
+    <div class="fg"><label class="fl">会社名</label><input class="fi" id="a-company" placeholder="例: SBI証券" oninput="suggestUrl()" /></div>
+    <div class="fg"><label class="fl">カテゴリー</label><select class="fi fi-sel" id="a-cat" onchange="onCatChange()"><option>銀行</option><option>証券</option><option>クレジットカード</option><option>保険</option><option>スマホ</option><option>電子決済</option><option>クラウド・AI</option><option>SNS</option><option>その他</option></select></div>
+    <!-- 銀行専用フィールド -->
+    <div id="a-bank-fields" style="display:none;">
+      <div class="fg"><label class="fl">支店名</label><input class="fi" id="a-branch" placeholder="例: 渋谷支店" /></div>
+    </div>
+    <!-- スマホ専用フィールド -->
+    <div id="a-phone-fields" style="display:none;">
+      <div class="f-row2" style="margin-bottom:13px;">
+        <div class="fg" style="margin-bottom:0;"><label class="fl">月額料金（円）</label><input class="fi" id="a-price" type="number" placeholder="2980" /></div>
+        <div class="fg" style="margin-bottom:0;"><label class="fl">SIMスロット</label><select class="fi fi-sel" id="a-sim"><option value="">指定なし</option><option>SIM1</option><option>SIM2</option></select></div>
+      </div>
+      <div class="fg"><label class="fl">支払い方法</label><input class="fi" id="a-pay-phone" placeholder="例: 楽天カード" /></div>
+    </div>
+    <div class="fg"><label class="fl">名義</label><select class="fi fi-sel" id="a-holder"><option>本人</option><option>配偶者</option><option>共同</option><option>親</option></select></div>
+    <div class="fg"><label class="fl">登録メールアドレス</label><input class="fi" id="a-email" type="email" placeholder="例: name@gmail.com" /></div>
+    <div class="fg"><label class="fl">契約番号（任意）</label><input class="fi" id="a-policy" placeholder="電話番号・証書番号など" /></div>
+    <div class="fg">
+      <label class="fl">🔗 緊急連絡先 URL（任意）</label>
+      <input class="fi" id="a-contact" placeholder="例: https://www.smbc-card.com/..." />
+      <div class="url-hint" id="url-suggest-hint"></div>
+    </div>
+    <div class="fg"><label class="fl">メモ</label><input class="fi" id="a-memo" placeholder="用途・補足など" /></div>
+    <button class="btn-p" id="asset-submit-btn" onclick="addAsset()">追加する</button>
+    <button class="btn-p btn-ghost" onclick="cancelAssetForm()">キャンセル</button>
+  </div>
+</div>
+<!-- Asset detail -->
+<div class="modal-overlay" id="modal-asset-dtl" onclick="closeOut(event,'modal-asset-dtl')">
+  <div class="modal">
+    <div class="m-handle"></div>
+    <div class="m-title" id="dtl-asset-title">詳細</div>
+    <div id="dtl-asset-body"></div>
+    <button class="btn-p" id="dtl-asset-edit" style="display:none;">編集する</button>
+    <button class="btn-p btn-danger" id="dtl-asset-del" style="display:none;">削除する</button>
+    <button class="btn-p btn-ghost" onclick="closeModal('modal-asset-dtl')">閉じる</button>
+  </div>
+</div>
+<!-- Add item -->
+<div class="modal-overlay" id="modal-add-item" onclick="closeOut(event,'modal-add-item')">
+  <div class="modal">
+    <div class="m-handle"></div>
+    <div class="m-title" id="m-item-title">重要物を追加</div>
+    <div class="fg"><label class="fl">重要物の名前</label><select class="fi fi-sel" id="it-name"><option>実印</option><option>銀行印</option><option>通帳</option><option>遺言書</option><option>マイナンバーカード</option><option>パスポート</option><option>権利書・不動産書類</option><option>保険証書</option><option>その他</option></select></div>
+    <div class="fg"><label class="fl">カスタム名（「その他」の場合）</label><input class="fi" id="it-custom" placeholder="カスタム名称" /></div>
+    <div class="fg"><label class="fl">保管場所</label><input class="fi" id="it-loc" placeholder="例: 書斎デスクの鍵付き引き出し" /></div>
+    <div class="fg"><label class="fl">アクセスヒント（任意）</label><input class="fi" id="it-hint" placeholder="例: 鍵はリビングの時計の裏" /></div>
+    <button class="btn-p" id="item-submit-btn" onclick="addItem()">追加する</button>
+    <button class="btn-p btn-ghost" onclick="cancelItemForm()">キャンセル</button>
+  </div>
+</div>
+<!-- Item detail -->
+<div class="modal-overlay" id="modal-item-dtl" onclick="closeOut(event,'modal-item-dtl')">
+  <div class="modal">
+    <div class="m-handle"></div>
+    <div class="m-title" id="dtl-item-title">詳細</div>
+    <div id="dtl-item-body"></div>
+    <button class="btn-p" id="dtl-item-edit" style="display:none;">編集する</button>
+    <button class="btn-p btn-danger" id="dtl-item-del" style="display:none;">削除する</button>
+    <button class="btn-p btn-ghost" onclick="closeModal('modal-item-dtl')">閉じる</button>
+  </div>
+</div>
+<!-- Settings -->
+<div class="modal-overlay" id="modal-settings" onclick="closeOut(event,'modal-settings')">
+  <div class="modal">
+    <div class="m-handle"></div>
+    <div class="m-title">⚙️ データ管理</div>
+
+    <div style="background:var(--sky-pale);border-radius:var(--r-md);padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--navy);line-height:1.7;">
+      📱 <strong>iPhoneへのデータ移行手順</strong><br>
+      ① 下の「エクスポート」でJSONファイルを保存<br>
+      ② AirDropやiCloud DriveでiPhoneへ送る<br>
+      ③ iPhoneのSafariでアプリを開き「インポート」<br>
+      ④ ホーム画面に追加でPWAとして使える
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">📤 エクスポート</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">全データをJSONファイルとして保存します</div>
+    <button class="btn-p" onclick="exportData()">全データをエクスポート</button>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin:20px 0 8px;">📥 インポート</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">別デバイスで保存したJSONを読み込みます<br><span style="color:var(--danger);">⚠️ 現在のデータは上書きされます</span></div>
+    <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
+    <button class="btn-p" style="background:var(--success);" onclick="document.getElementById('import-file').click()">JSONファイルをインポート</button>
+
+    <button class="btn-p btn-ghost" onclick="closeModal('modal-settings')">閉じる</button>
+  </div>
+</div>
+<!-- Contact edit -->
+<div class="modal-overlay" id="modal-edit-contact" onclick="closeOut(event,'modal-edit-contact')">
+  <div class="modal">
+    <div class="m-handle"></div>
+    <div class="m-title" id="contact-edit-title">連絡先を編集</div>
+    <input type="hidden" id="contact-edit-id" />
+    <div class="fg"><label class="fl">📞 電話番号</label><input class="fi" id="contact-phone" type="tel" placeholder="例: 090-1234-5678" /></div>
+    <button class="btn-p" onclick="saveContact()">保存する</button>
+    <button class="btn-p btn-ghost" onclick="closeModal('modal-edit-contact')">キャンセル</button>
+  </div>
+</div>
+
+<script>
+// ===== CONSTANTS =====
+const USERS = {
+  yoji:   {name:'洋司', role:'夫',  icon:'👨', color:'#0062C4', cls:'yoji'},
+  tokiko: {name:'季子', role:'妻',  icon:'👩', color:'#C0264A', cls:'tokiko'},
+  miori:  {name:'美織', role:'長女', icon:'👧', color:'#9B59B6', cls:'miori'},
+  haruma: {name:'春馬', role:'長男', icon:'👦', color:'#27AE60', cls:'haruma'},
+};
+const ALL_USERS = ['yoji','tokiko','miori','haruma'];
+const CAT = {
+  '銀行':           {icon:'🏦', color:'#0062C4'},
+  '証券':           {icon:'📈', color:'#1A8A5A'},
+  'クレジットカード':{icon:'💳', color:'#5856D6'},
+  '保険':           {icon:'🛡️', color:'#D4820A'},
+  'スマホ':         {icon:'📱', color:'#0093D0'},
+  '電子決済':       {icon:'📲', color:'#E8344B'},
+  'クラウド・AI':   {icon:'🌐', color:'#7B52E8'},
+  'SNS':            {icon:'💬', color:'#C0264A'},
+  'その他':         {icon:'📁', color:'#576070'},
+};
+const SCAT = {動画:'🎬',音楽:'🎵',習い事:'📚',通信:'📡',光熱費:'💡',その他:'📂'};
+const IICO = {実印:'🔏',銀行印:'🔏',通帳:'📒',遺言書:'📜',マイナンバーカード:'🪪',パスポート:'🛂','権利書・不動産書類':'🏠',保険証書:'🛡️',その他:'📦'};
+
+// ===== 金融機関 緊急連絡先URL テーブル =====
+const KNOWN_URLS = {
+  // ── クレジットカード（紛失・盗難） ──
+  '三井住友カード':          'https://www.smbc-card.com/mem/goriyo/lost.jsp',
+  '楽天カード':              'https://www.rakuten-card.co.jp/support/robbery/',
+  'JCBカード':               'https://www.jcb.co.jp/support/lost-and-stolen.html',
+  'JCB':                    'https://www.jcb.co.jp/support/lost-and-stolen.html',
+  'イオンカード':            'https://www.aeon.co.jp/inquiry/lost/',
+  'dカード':                 'https://d-card.jp/st/lost/index.html',
+  'セゾンカード':            'https://www.saisoncard.co.jp/customer-support/lost/',
+  'エポスカード':            'https://faq.eposcard.co.jp/category/show/60',
+  'PayPayカード':            'https://www.paypay-card.co.jp/service/help/trouble/theft-loss/',
+  'アメリカン・エキスプレス':'https://www.americanexpress.com/jp/support/contact/lost-stolen.html',
+  'アメックス':              'https://www.americanexpress.com/jp/support/contact/lost-stolen.html',
+  'ダイナースクラブ':        'https://www.diners.co.jp/ja/usage/loss.html',
+  'ビューカード':            'https://faq.viewcard.co.jp/faq/show/137',
+  'オリコカード':            'https://www.orico.co.jp/support/card_loss/',
+  // ── 銀行（相続・口座凍結手続き） ──
+  '三菱UFJ銀行':             'https://www.bk.mufg.jp/tsukau/tetsuduki/sozoku/',
+  '三井住友銀行':            'https://www.smbc.co.jp/kojin/souzoku/tetsuzuki/',
+  'みずほ銀行':              'https://www.mizuhobank.co.jp/tetsuduki/souzoku/index.html',
+  'ゆうちょ銀行':            'https://www.jp-bank.japanpost.jp/tetuzuki/souzoku/tzk_szk_index.html',
+  '楽天銀行':                'https://www.rakuten-bank.co.jp/guide/inheritance.html',
+  '住信SBIネット銀行':       'https://www.netbk.co.jp/contents/lineup/souzoku/',
+  'PayPay銀行':              'https://www.paypay-bank.co.jp/procedure/inherit.html',
+  'りそな銀行':              'https://www.resonabank.co.jp/kojin/faq/sozoku/',
+  'イオン銀行':              'https://www.aeonbank.co.jp/procedure/others/inheritance.html',
+  // ── 証券（相続手続き） ──
+  'SBI証券':                 'https://go.sbisec.co.jp/prd/common/inheritance/flow.html',
+  '楽天証券':                'https://www.rakuten-sec.co.jp/web/support/inheritance/',
+  '野村証券':                'https://www.nomura.co.jp/support/procedure/inheritance/',
+  'マネックス証券':          'https://info.monex.co.jp/souzoku/index.html',
+};
+
+function suggestUrl(){
+  const name=document.getElementById('a-company').value.trim();
+  const hint=document.getElementById('url-suggest-hint');
+  const contactEl=document.getElementById('a-contact');
+  if(!name){hint.textContent='';return;}
+  // 既に入力済みの場合は上書きしない
+  if(contactEl.value){hint.textContent='';return;}
+  // 部分一致でURL検索
+  const found=Object.entries(KNOWN_URLS).find(([k])=>name.includes(k)||k.includes(name));
+  if(found){
+    contactEl.value=found[1];
+    hint.textContent='✅ 緊急連絡先URLを自動入力しました';
+  } else {
+    hint.textContent='';
+  }
+}
+
+// ===== FAMILY MEMBERS =====
+const FAMILY = [
+  {id:'yoji',   name:'洋司', role:'夫',  icon:'👨', bg:'rgba(0,98,196,.13)'},
+  {id:'tokiko', name:'季子', role:'妻',  icon:'👩', bg:'rgba(192,38,74,.13)'},
+  {id:'miori',  name:'美織', role:'長女', icon:'👧', bg:'rgba(155,89,182,.13)'},
+  {id:'haruma', name:'春馬', role:'長男', icon:'👦', bg:'rgba(39,174,96,.13)'},
+];
+const ldC = () => JSON.parse(localStorage.getItem('fv_contacts')||'{}');
+const svC = d  => localStorage.setItem('fv_contacts', JSON.stringify(d));
+
+// ===== STATE =====
+let cu=null, vu=null, childOn=false;
+let editingSubId=null, editingAssetId=null, editingItemId=null;
+const K  = (u,t) => `fv_${u}_${t}`;
+const ld = (u,t) => JSON.parse(localStorage.getItem(K(u,t))||'[]');
+const sv = (u,t,d) => localStorage.setItem(K(u,t),JSON.stringify(d));
+const uid = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+const vsubs  = () => ld(vu,'subs');
+const vassets= () => ld(vu,'assets');
+const vitems = () => ld(vu,'items');
+const csubs  = () => ld(cu,'subs');
+const cassets= () => ld(cu,'assets');
+const citems = () => ld(cu,'items');
+const isV     = () => vu!==cu;
+// 洋司は美織・春馬のデータも編集可
+const canEdit = () => cu===vu || (cu==='yoji' && (vu==='miori'||vu==='haruma'));
+// 実際に書き込むユーザー（閲覧中かつ編集可なら vu へ書く）
+const et      = () => canEdit() ? vu : cu;
+const CU      = () => USERS[cu];
+const VU      = () => USERS[vu];
+
+// ===== 既存データへのURL一括補完 =====
+function applyMissingUrls(){
+  ALL_USERS.forEach(u=>{
+    const assets=ld(u,'assets');
+    let changed=false;
+    assets.forEach(a=>{
+      if(a.contact_info) return; // 入力済みはスキップ
+      const found=Object.entries(KNOWN_URLS).find(([k])=>
+        a.company_name&&(a.company_name.includes(k)||k.includes(a.company_name))
+      );
+      if(found){ a.contact_info=found[1]; changed=true; }
+    });
+    if(changed) sv(u,'assets',assets);
+  });
+}
+
+// ===== LOGIN =====
+function selectUser(u){
+  cu=vu=u;
+  document.getElementById('tab-bar').style.display='flex';
+  showScreen('home');
+}
+
+// ===== NAV =====
+const SCRS=['login','home','assets','items','contacts','emergency'];
+function showScreen(n){
+  SCRS.forEach(s=>{
+    document.getElementById('screen-'+s).classList.remove('active');
+    const t=document.getElementById('tab-'+s); if(t)t.classList.remove('active');
+  });
+  document.getElementById('screen-'+n).classList.add('active');
+  const t=document.getElementById('tab-'+n); if(t)t.classList.add('active');
+  if(n==='home')     renderHome();
+  if(n==='assets')  {currentAssetCat=null; renderAssets();}
+  if(n==='items')    renderItems();
+  if(n==='contacts') renderContacts();
+  if(n==='emergency')renderEmergency();
+}
+function goEmergency(){showScreen('emergency');}
+
+// ===== USER BANNER =====
+function buildBar(sid){
+  const ub=document.getElementById('ub-'+sid);
+  const vb=document.getElementById('vb-'+sid);
+  ub.innerHTML=`<div class="user-bar">
+    <div class="ub-left">
+      <div class="ub-avatar" style="background:${CU().color}22;">${CU().icon}</div>
+      <span class="ub-name">${CU().name}</span>
+      <span class="ub-chip self">ログイン中</span>
+    </div>
+    <div class="ub-div"></div>
+    <div class="view-switch">
+      ${ALL_USERS.map(u=>`<button class="vs-btn ${vu===u?'on-'+USERS[u].cls:''}" onclick="swV('${u}','${sid}')" title="${USERS[u].name}">${USERS[u].icon}</button>`).join('')}
+    </div>
+  </div>`;
+  if(isV()&&canEdit()){vb.textContent=`✏️  ${VU().name}のデータを編集中`;vb.classList.add('show');}
+  else if(isV()){vb.textContent=`👁  ${VU().name}のデータを閲覧中（読み取り専用）`;vb.classList.add('show');}
+  else vb.classList.remove('show');
+}
+function swV(u,sid){vu=u;if(sid==='home')renderHome();if(sid==='assets')renderAssets();if(sid==='items')renderItems();}
+function setAdd(id){document.getElementById(id).disabled=!canEdit();}
+
+// ===== HOME =====
+const mp = s => s.cycle === '年額' ? Math.round(s.price / 12) : s.price;
+
+// スマホ資産のうち月額料金が登録されているものを「仮想サブスク」として返す
+function phoneAsAsSubs(user) {
+  return ld(user, 'assets')
+    .filter(a => a.category === 'スマホ' && a.monthly_price > 0)
+    .map(a => ({
+      _fromAsset: true,
+      id: a.id,
+      service_name: a.company_name + (a.sim_slot ? ` (${a.sim_slot})` : ''),
+      category: 'スマホ',
+      price: a.monthly_price,
+      cycle: '月額',
+      payment_method: a.payment_method_phone || '',
+    }));
+}
+
+function renderHome(){
+  buildBar('home');
+  document.getElementById('m-sub-title').textContent=`${VU().name}のサービスを追加`;
+
+  // 家族の連絡先ストリップ
+  const contacts=ldC();
+  document.getElementById('home-contact-strip').innerHTML=FAMILY.map(f=>{
+    const c=contacts[f.id]||{};
+    const phone=c.phone||'';
+    return`<div class="cs-card">
+      <div class="cs-head">
+        <div class="cs-av" style="background:${f.bg};">${f.icon}</div>
+        <div><div class="cs-name">${f.name}</div><div class="cs-role">${f.role}</div></div>
+      </div>
+      <div class="cs-phone">${phone||'番号未登録'}</div>
+      ${phone?`<a href="tel:${esc(phone)}" class="cs-call">📞 電話する</a>`:`<div class="cs-none">家族タブで登録</div>`}
+    </div>`;
+  }).join('');
+
+  // 合計：サブスク ＋ スマホ資産（家族4人）
+  const memberTotals = ALL_USERS.map(u=>({
+    u,
+    t: ld(u,'subs').reduce((s,x)=>s+mp(x),0) + phoneAsAsSubs(u).reduce((s,x)=>s+x.price,0),
+    cnt: ld(u,'subs').length + phoneAsAsSubs(u).length,
+  }));
+  const grandTotal = memberTotals.reduce((s,x)=>s+x.t,0);
+  const allCnt     = memberTotals.reduce((s,x)=>s+x.cnt,0);
+
+  document.getElementById('total-num').textContent=grandTotal.toLocaleString();
+  document.getElementById('total-sub').textContent=allCnt+'件のサービス契約中（家族合計）';
+
+  // 2×2 グリッド
+  document.getElementById('member-totals').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;margin-top:13px;padding-top:12px;border-top:1px solid var(--sep);">
+      ${memberTotals.map(({u,t},i)=>`
+        <div style="padding:${i>=2?'10px 0 0':'0'} ${i%2===1?'0 0 0 14px':'0 0 0 0'};${i%2===1?'border-left:1px solid var(--sep);':''} ${i>=2?'border-top:1px solid var(--sep2);':''}">
+          <div class="tp-who"><div class="tp-dot" style="background:${USERS[u].color};"></div><div class="tp-who-name">${USERS[u].name}</div></div>
+          <div class="tp-val">¥${t.toLocaleString()}</div>
+        </div>`).join('')}
+    </div>`;
+  document.getElementById('sub-list-label').textContent=isV()?`${VU().name}のサービス一覧`:'自分のサービス一覧';
+
+  // 表示リスト：サブスク ＋ スマホ資産（閲覧ユーザー分）
+  const subs = [...vsubs(), ...phoneAsAsSubs(vu)];
+  const list = document.getElementById('sub-list');
+  if(!subs.length){list.innerHTML=emptyRow(isV()?`${VU().name}のサービスはまだありません`:'「＋」からサービスを追加してください');return;}
+  const scols={動画:'#C0264A',音楽:'#0062C4',習い事:'#5856D6',通信:'#1A8A5A',光熱費:'#D4820A',スマホ:'#0093D0',その他:'#576070'};
+  list.innerHTML=subs.map(s=>`
+    <div class="card-row" onclick="${s._fromAsset ? `showAssetDtl('${s.id}')` : `showSubDtl('${s.id}')`}">
+      <div class="odot ${vu}"></div>
+      <div class="row-icon" style="background:${scols[s.category]||'#576070'}18;">${s._fromAsset ? '📱' : (SCAT[s.category]||'📂')}</div>
+      <div class="row-body"><div class="row-title">${esc(s.service_name)}</div>
+      <div class="row-sub">${esc(s.category)} · ${esc(s.payment_method||'—')}</div></div>
+      <div><div class="row-val">¥${Number(s.price).toLocaleString()}</div><div class="row-cyc">${esc(s.cycle)}</div></div>
+      <span class="chevron">›</span></div>`).join('');
+}
+function addSub(){
+  const n=document.getElementById('sub-name').value.trim();
+  const p=parseInt(document.getElementById('sub-price').value)||0;
+  if(!n){alert('サービス名を入力してください');return;}
+  const entry={service_name:n,category:document.getElementById('sub-cat').value,
+    price:p,cycle:document.getElementById('sub-cycle').value,
+    payment_method:document.getElementById('sub-pay').value.trim(),
+    next_update_date:document.getElementById('sub-date').value,is_reminder_on:true};
+  const a=ld(et(),'subs');
+  if(editingSubId){
+    const i=a.findIndex(x=>x.id===editingSubId);
+    if(i>=0) a[i]={...a[i],...entry};
+    editingSubId=null;
+  } else {
+    a.push({id:uid(),...entry});
+  }
+  sv(et(),'subs',a); closeModal('modal-add-sub');
+  clr(['sub-name','sub-price','sub-pay','sub-date']);
+  resetSubForm(); renderHome();
+  if(document.getElementById('screen-assets').classList.contains('active')){
+    renderAssets(); // グリッドのカウントを更新
+    showCat('サブスク'); // サブスクリストを再表示
+  }
+}
+function cancelSubForm(){ editingSubId=null; resetSubForm(); closeModal('modal-add-sub'); }
+function resetSubForm(){
+  document.getElementById('m-sub-title').textContent=`${VU().name}のサービスを追加`;
+  document.getElementById('sub-submit-btn').textContent='追加する';
+}
+function editSub(id){
+  const s=ld(et(),'subs').find(x=>x.id===id); if(!s)return;
+  document.getElementById('sub-name').value=s.service_name;
+  document.getElementById('sub-price').value=s.price;
+  document.getElementById('sub-cycle').value=s.cycle;
+  document.getElementById('sub-cat').value=s.category;
+  document.getElementById('sub-pay').value=s.payment_method||'';
+  document.getElementById('sub-date').value=s.next_update_date||'';
+  editingSubId=id;
+  document.getElementById('m-sub-title').textContent='サービスを編集';
+  document.getElementById('sub-submit-btn').textContent='変更を保存';
+  closeModal('modal-sub-dtl'); openModal('modal-add-sub');
+}
+function showSubDtl(id){
+  const s=vsubs().find(x=>x.id===id); if(!s)return;
+  document.getElementById('dtl-sub-title').textContent=s.service_name;
+  document.getElementById('dtl-sub-body').innerHTML=dRows([
+    ['所有者',VU().icon+' '+VU().name],['カテゴリー',s.category],
+    ['金額','¥'+Number(s.price).toLocaleString()+' ('+s.cycle+')'],
+    ['支払い方法',s.payment_method||'—'],['次回更新日',s.next_update_date||'—'],
+  ]);
+  const own=canEdit();
+  const eb=document.getElementById('dtl-sub-edit');
+  const db=document.getElementById('dtl-sub-del');
+  eb.style.display=own?'block':'none';
+  db.style.display=own?'block':'none';
+  eb.onclick=()=>editSub(id);
+  db.onclick=()=>{sv(et(),'subs',ld(et(),'subs').filter(x=>x.id!==id));closeModal('modal-sub-dtl');renderHome();};
+  openModal('modal-sub-dtl');
+}
+
+// ===== ASSETS =====
+let currentAssetCat=null;
+function renderAssets(){
+  buildBar('assets');
+  document.getElementById('m-sub-title').textContent=`${VU().name}のサービスを追加`;
+  document.getElementById('m-asset-title').textContent=`${VU().name}の契約・資産を追加`;
+  // デフォルトの＋ボタンは資産追加
+  const ab=document.getElementById('assets-add-btn');
+  ab.onclick=()=>openModal('modal-add-asset');
+  ab.disabled=!canEdit();
+
+  // サブスクセルを先頭に追加してグリッド生成（スマホ資産は含めない）
+  const subCnt=vsubs().length;
+  document.getElementById('cat-grid').innerHTML=
+    `<div class="cat-cell" onclick="showCat('サブスク')">
+      <div class="cat-icon">📺</div><div class="cat-name">サブスク</div><div class="cat-count">${subCnt}件</div></div>`+
+    Object.entries(CAT).map(([c,m])=>{
+      const cnt=vassets().filter(a=>a.category===c).length;
+      return`<div class="cat-cell" onclick="showCat('${c}')">
+        <div class="cat-icon">${m.icon}</div><div class="cat-name">${c}</div><div class="cat-count">${cnt}件</div></div>`;
+    }).join('');
+
+  if(currentAssetCat) showCat(currentAssetCat);
+  else renderAssetList(null);
+}
+function showCat(c){
+  currentAssetCat=c;
+  const ab=document.getElementById('assets-add-btn');
+  if(c==='サブスク'){
+    ab.onclick=()=>openModal('modal-add-sub');
+  } else {
+    ab.onclick=()=>openModal('modal-add-asset');
+  }
+  ab.disabled=!canEdit();
+  renderAssetList(c);
+}
+function renderAssetList(fc){
+  const hdr=document.getElementById('asset-list-hdr'), lst=document.getElementById('asset-list');
+  const who=isV()?VU().name+'の':'自分の';
+
+  // サブスクカテゴリーの場合
+  if(fc==='サブスク'){
+    const subs=vsubs();
+    hdr.style.display='block'; hdr.textContent=`${who}サブスク・サービス`;
+    lst.style.display='block';
+    const scols={動画:'#C0264A',音楽:'#0062C4',習い事:'#5856D6',通信:'#1A8A5A',光熱費:'#D4820A',スマホ:'#0093D0',その他:'#576070'};
+    lst.innerHTML=!subs.length
+      ? emptyRow(canEdit()?'「＋」からサービス・サブスクを追加できます':`${VU().name}のサービスはまだありません`)
+      : subs.map(s=>`
+        <div class="card-row" onclick="${s._fromAsset?`showAssetDtl('${s.id}')`:`showSubDtl('${s.id}')`}">
+          <div class="odot ${vu}"></div>
+          <div class="row-icon" style="background:${scols[s.category]||'#576070'}18;">${s._fromAsset?'📱':(SCAT[s.category]||'📂')}</div>
+          <div class="row-body">
+            <div class="row-title">${esc(s.service_name)}</div>
+            <div class="row-sub">${esc(s.category)} · ${esc(s.payment_method||'—')}</div>
+          </div>
+          <div><div class="row-val">¥${Number(s.price).toLocaleString()}</div><div class="row-cyc">${esc(s.cycle)}</div></div>
+          <span class="chevron">›</span>
+        </div>`).join('');
+    return;
+  }
+
+  // 通常の資産カテゴリー
+  const items=fc?vassets().filter(a=>a.category===fc):vassets();
+  if(!items.length){hdr.style.display='none';lst.style.display='none';return;}
+  hdr.style.display='block'; hdr.textContent=fc?`${who}${fc}`:`${who}全カテゴリー`;
+  lst.style.display='block';
+  lst.innerHTML=items.map(a=>{
+    const m=CAT[a.category]||CAT['その他'];
+    return`<div class="card-row" onclick="showAssetDtl('${a.id}')">
+      <div class="odot ${vu}"></div>
+      <div class="row-icon" style="background:${m.color}18;">${m.icon}</div>
+      <div class="row-body"><div class="row-title">${esc(a.company_name)}</div>
+      <div class="row-sub">${esc(a.account_holder)} · ${esc(a.registered_email||'—')}</div></div>
+      <span class="chevron">›</span></div>`;
+  }).join('');
+}
+function onCatChange(){
+  const cat = document.getElementById('a-cat').value;
+  document.getElementById('a-bank-fields').style.display  = cat === '銀行'  ? 'block' : 'none';
+  document.getElementById('a-phone-fields').style.display = cat === 'スマホ' ? 'block' : 'none';
+}
+function addAsset(){
+  const company=document.getElementById('a-company').value.trim();
+  if(!company){alert('会社名を入力してください');return;}
+  const cat=document.getElementById('a-cat').value;
+  const entry={
+    company_name:company, category:cat,
+    account_holder:document.getElementById('a-holder').value,
+    registered_email:document.getElementById('a-email').value.trim(),
+    policy_number:document.getElementById('a-policy').value.trim(),
+    contact_info:document.getElementById('a-contact').value.trim(),
+    memo:document.getElementById('a-memo').value.trim()
+  };
+  if(cat==='銀行'){
+    entry.branch_name = document.getElementById('a-branch').value.trim();
+  }
+  if(cat==='スマホ'){
+    entry.monthly_price       = parseInt(document.getElementById('a-price').value)||0;
+    entry.sim_slot            = document.getElementById('a-sim').value;
+    entry.payment_method_phone= document.getElementById('a-pay-phone').value.trim();
+  }
+  const a=ld(et(),'assets');
+  if(editingAssetId){
+    const i=a.findIndex(x=>x.id===editingAssetId);
+    if(i>=0) a[i]={...a[i],...entry};
+    editingAssetId=null;
+  } else {
+    a.push({id:uid(),...entry});
+  }
+  sv(et(),'assets',a);
+  closeModal('modal-add-asset');
+  clr(['a-company','a-branch','a-email','a-policy','a-contact','a-memo','a-price','a-pay-phone']);
+  resetAssetForm();
+  renderAssets(); renderHome();
+}
+function cancelAssetForm(){ editingAssetId=null; resetAssetForm(); closeModal('modal-add-asset'); }
+function resetAssetForm(){
+  document.getElementById('m-asset-title').textContent=`${VU().name}の契約・資産を追加`;
+  document.getElementById('asset-submit-btn').textContent='追加する';
+  document.getElementById('a-bank-fields').style.display='none';
+  document.getElementById('a-phone-fields').style.display='none';
+  document.getElementById('a-cat').value='銀行';
+  onCatChange();
+}
+function editAsset(id){
+  const a=ld(et(),'assets').find(x=>x.id===id); if(!a)return;
+  document.getElementById('a-company').value       = a.company_name;
+  document.getElementById('a-cat').value           = a.category;
+  document.getElementById('a-holder').value        = a.account_holder||'本人';
+  document.getElementById('a-email').value         = a.registered_email||'';
+  document.getElementById('a-policy').value        = a.policy_number||'';
+  document.getElementById('a-contact').value       = a.contact_info||'';
+  document.getElementById('a-memo').value          = a.memo||'';
+  if(a.category==='銀行'){
+    document.getElementById('a-bank-fields').style.display='block';
+    document.getElementById('a-branch').value = a.branch_name||'';
+  }
+  if(a.category==='スマホ'){
+    document.getElementById('a-phone-fields').style.display='block';
+    document.getElementById('a-price').value     = a.monthly_price||'';
+    document.getElementById('a-sim').value       = a.sim_slot||'';
+    document.getElementById('a-pay-phone').value = a.payment_method_phone||'';
+  }
+  editingAssetId=id;
+  document.getElementById('m-asset-title').textContent='契約・資産を編集';
+  document.getElementById('asset-submit-btn').textContent='変更を保存';
+  closeModal('modal-asset-dtl'); openModal('modal-add-asset');
+}
+function showAssetDtl(id){
+  const a=vassets().find(x=>x.id===id); if(!a)return;
+  document.getElementById('dtl-asset-title').textContent=a.company_name;
+  const rows=[
+    ['所有者', VU().icon+' '+VU().name],
+    ['カテゴリー', a.category],
+    ['名義', a.account_holder||'—'],
+    ['登録メール', a.registered_email||'—'],
+    ['契約番号', a.policy_number||'—'],
+    ['問い合わせ先', a.contact_info||'—'],
+    ['メモ', a.memo||'—'],
+  ];
+  if(a.category==='銀行'){
+    rows.splice(2,0,['支店名', a.branch_name||'—']);
+  }
+  if(a.category==='スマホ'){
+    rows.splice(2,0,
+      ['月額料金', a.monthly_price ? '¥'+Number(a.monthly_price).toLocaleString()+'/月' : '—'],
+      ['SIMスロット', a.sim_slot||'—'],
+      ['支払い方法', a.payment_method_phone||'—'],
+    );
+  }
+  document.getElementById('dtl-asset-body').innerHTML=dRows(rows);
+  const own=canEdit();
+  const eb=document.getElementById('dtl-asset-edit');
+  const db=document.getElementById('dtl-asset-del');
+  eb.style.display=own?'block':'none';
+  db.style.display=own?'block':'none';
+  eb.onclick=()=>editAsset(id);
+  db.onclick=()=>{sv(et(),'assets',ld(et(),'assets').filter(x=>x.id!==id));closeModal('modal-asset-dtl');renderAssets();renderHome();};
+  openModal('modal-asset-dtl');
+}
+
+// ===== ITEMS =====
+function renderItems(){
+  buildBar('items'); setAdd('items-add-btn');
+  document.getElementById('m-item-title').textContent=`${VU().name}の重要物を追加`;
+  const its=vitems();
+  document.getElementById('item-count').textContent=its.length;
+  document.getElementById('item-sub').textContent=`件（${isV()?VU().name+'の':'自分の'}重要物）`;
+  const list=document.getElementById('item-list');
+  if(!its.length){list.innerHTML=emptyRow(isV()?`${VU().name}の重要物はまだありません`:'「＋」から重要物を追加してください');return;}
+  list.innerHTML=its.map(it=>`
+    <div class="card-row" onclick="showItemDtl('${it.id}')">
+      <div class="odot ${vu}"></div>
+      <div class="row-icon" style="background:#5856D618;">${IICO[it.item_name]||'📦'}</div>
+      <div class="row-body"><div class="row-title">${esc(it.item_name)}</div>
+      <div class="row-sub">${esc(it.location)}</div></div>
+      <span class="chevron">›</span></div>`).join('');
+}
+function addItem(){
+  let n=document.getElementById('it-name').value;
+  const c=document.getElementById('it-custom').value.trim();
+  if(n==='その他'&&c)n=c;
+  const loc=document.getElementById('it-loc').value.trim();
+  if(!loc){alert('保管場所を入力してください');return;}
+  const entry={item_name:n, location:loc, hint:document.getElementById('it-hint').value.trim()};
+  const a=ld(et(),'items');
+  if(editingItemId){
+    const i=a.findIndex(x=>x.id===editingItemId);
+    if(i>=0) a[i]={...a[i],...entry};
+    editingItemId=null;
+  } else {
+    a.push({id:uid(),...entry});
+  }
+  sv(et(),'items',a); closeModal('modal-add-item');
+  clr(['it-custom','it-loc','it-hint']);
+  resetItemForm(); renderItems();
+}
+function cancelItemForm(){ editingItemId=null; resetItemForm(); closeModal('modal-add-item'); }
+function resetItemForm(){
+  document.getElementById('m-item-title').textContent=`${VU().name}の重要物を追加`;
+  document.getElementById('item-submit-btn').textContent='追加する';
+}
+function editItem(id){
+  const it=ld(et(),'items').find(x=>x.id===id); if(!it)return;
+  // プリセット選択肢に含まれる名前かチェック
+  const presets=['実印','銀行印','通帳','遺言書','マイナンバーカード','パスポート','権利書・不動産書類','保険証書','その他'];
+  if(presets.includes(it.item_name)){
+    document.getElementById('it-name').value=it.item_name;
+    document.getElementById('it-custom').value='';
+  } else {
+    document.getElementById('it-name').value='その他';
+    document.getElementById('it-custom').value=it.item_name;
+  }
+  document.getElementById('it-loc').value=it.location;
+  document.getElementById('it-hint').value=it.hint||'';
+  editingItemId=id;
+  document.getElementById('m-item-title').textContent='重要物を編集';
+  document.getElementById('item-submit-btn').textContent='変更を保存';
+  closeModal('modal-item-dtl'); openModal('modal-add-item');
+}
+function showItemDtl(id){
+  const it=vitems().find(x=>x.id===id); if(!it)return;
+  document.getElementById('dtl-item-title').textContent=it.item_name;
+  document.getElementById('dtl-item-body').innerHTML=dRows([
+    ['所有者',VU().icon+' '+VU().name],['保管場所',it.location],['アクセスヒント',it.hint||'—'],
+  ]);
+  const own=canEdit();
+  const eb=document.getElementById('dtl-item-edit');
+  const db=document.getElementById('dtl-item-del');
+  eb.style.display=own?'block':'none';
+  db.style.display=own?'block':'none';
+  eb.onclick=()=>editItem(id);
+  db.onclick=()=>{sv(et(),'items',ld(et(),'items').filter(x=>x.id!==id));closeModal('modal-item-dtl');renderItems();};
+  openModal('modal-item-dtl');
+}
+
+// ===== CONTACTS =====
+function renderContacts(){
+  const contacts=ldC();
+  document.getElementById('contact-grid').innerHTML=FAMILY.map(f=>{
+    const c=contacts[f.id]||{};
+    const phone=c.phone||'';
+    const line =c.line||'';
+    const lineUrl=line?`https://line.me/R/ti/p/~${encodeURIComponent(line)}`:'';
+    return`<div class="contact-card">
+      <div class="cc-top">
+        <div class="cc-avatar" style="background:${f.bg};">${f.icon}</div>
+        <div><div class="cc-name">${f.name}</div><div class="cc-role">${f.role}</div></div>
+      </div>
+      <div class="cc-detail">
+        <div class="cc-row">📞&nbsp;<span class="cc-val ${!phone?'cc-empty':''}">${phone||'未登録'}</span></div>
+      </div>
+      <div class="cc-btns">
+        ${phone?`<a href="tel:${esc(phone)}" class="cc-call-btn">📞 電話する</a>`:`<span class="cc-call-btn" style="opacity:.3;cursor:default;">📞 未登録</span>`}
+      </div>
+      <button class="cc-edit-btn" onclick="openContactEdit('${f.id}')">✏️ 編集する</button>
+    </div>`;
+  }).join('');
+}
+function openContactEdit(id){
+  const f=FAMILY.find(x=>x.id===id); if(!f)return;
+  const c=ldC()[id]||{};
+  document.getElementById('contact-edit-id').value=id;
+  document.getElementById('contact-edit-title').textContent=`${f.name}の連絡先を編集`;
+  document.getElementById('contact-phone').value=c.phone||'';
+  openModal('modal-edit-contact');
+}
+function saveContact(){
+  const id   =document.getElementById('contact-edit-id').value;
+  const phone=document.getElementById('contact-phone').value.trim();
+  const all=ldC();
+  all[id]={...(all[id]||{}), phone};
+  svC(all);
+  closeModal('modal-edit-contact');
+  renderContacts();
+  // ホーム画面が表示中なら更新
+  if(document.getElementById('screen-home').classList.contains('active')) renderHome();
+}
+
+// ===== EMERGENCY =====
+function toggleChild(){
+  childOn=!childOn;
+  document.getElementById('child-toggle').classList.toggle('on',childOn);
+  renderEmergency();
+}
+function renderEmergency(){
+  const allS=ALL_USERS.flatMap(u=>ld(u,'subs').map(s=>({...s,_o:u})));
+  const allA=ALL_USERS.flatMap(u=>ld(u,'assets').map(a=>({...a,_o:u})));
+  const allI=ALL_USERS.flatMap(u=>ld(u,'items').map(i=>({...i,_o:u})));
+  // 後方互換エイリアス
+  const yS=ld('yoji','subs'), tS=ld('tokiko','subs');
+  const yA=ld('yoji','assets'), tA=ld('tokiko','assets');
+  const yI=ld('yoji','items'), tI=ld('tokiko','items');
+
+  // 連絡先カード
+  const contacts=ldC();
+  document.getElementById('em-contacts').innerHTML=FAMILY.map(f=>{
+    const c=contacts[f.id]||{};
+    const phone=c.phone||'';
+    return`<div class="em-cc">
+      <div class="em-cc-head">
+        <div class="em-cc-av" style="background:${f.bg};">${f.icon}</div>
+        <div><div class="em-cc-name">${f.name}</div><div class="em-cc-role">${f.role}</div></div>
+      </div>
+      ${phone?`<a href="tel:${esc(phone)}" class="em-cc-call">📞 ${esc(phone)}</a>`:`<div class="em-cc-none">電話番号未登録</div>`}
+    </div>`;
+  }).join('');
+
+  const tasks=[];
+  allS.forEach(s=>tasks.push({name:`${s.service_name} を解約する`,o:s._o,p:'高'}));
+  allA.filter(a=>a.category==='銀行').forEach(a=>tasks.push({name:`${a.company_name} へ連絡（口座凍結・相続手続き）`,o:a._o,p:'高'}));
+  allA.filter(a=>a.category==='保険').forEach(a=>tasks.push({name:`${a.company_name} へ保険金請求の連絡をする`,o:a._o,p:'高'}));
+  allA.filter(a=>a.category==='証券').forEach(a=>tasks.push({name:`${a.company_name} へ相続手続きの連絡をする`,o:a._o,p:'中'}));
+  allA.filter(a=>a.category==='電子決済').forEach(a=>tasks.push({name:`${a.company_name} のアカウント処理をする`,o:a._o,p:'中'}));
+  if(!tasks.length)tasks.push({name:'銀行・保険・サブスクを登録するとタスクが自動生成されます',o:cu,p:'低'});
+  if(childOn)[
+    {name:'【美織】の学校・幼稚園へ連絡する',o:cu,p:'高'},
+    {name:'【春馬】の学校・幼稚園へ連絡する',o:cu,p:'高'},
+    {name:'習い事・塾へ連絡する（美織・春馬）',o:cu,p:'中'},
+    {name:'引き落とし口座の変更手続き（子ども名義）',o:cu,p:'中'},
+  ].forEach(t=>tasks.push(t));
+
+  const done=JSON.parse(localStorage.getItem('fv_em_done')||'{}');
+  document.getElementById('em-tasks').innerHTML=tasks.map(t=>{
+    const d=!!done[t.name]; const u=USERS[t.o]||CU();
+    return`<div class="em-row" onclick="toggleTask(this,'${esc(t.name)}')">
+      <div class="em-check ${d?'done':''}"></div>
+      <div style="flex:1;">
+        <div class="em-task-title ${d?'done':''}">${esc(t.name)}<span class="em-tag ${u.cls}">${u.icon}${u.name}</span></div>
+        <span class="em-badge ${t.p==='高'?'eb-high':t.p==='中'?'eb-mid':'eb-low'}">${t.p}優先</span>
+      </div></div>`;
+  }).join('');
+
+  document.getElementById('em-assets').innerHTML=!allA.length?emRowD('登録なし'):
+    allA.map(a=>{const m=CAT[a.category]||CAT['その他'];const u=USERS[a._o];
+      return`<div class="em-row"><div class="em-check" style="background:${m.color};border-color:${m.color};font-size:13px;">${m.icon}</div>
+        <div style="flex:1;"><div class="em-task-title">${esc(a.company_name)}<span class="em-tag ${u.cls}">${u.icon}${u.name}</span></div>
+        <div style="color:rgba(255,255,255,.38);font-size:11px;">${esc(a.category)} · ${esc(a.registered_email||'—')}</div></div></div>`;
+    }).join('');
+
+  document.getElementById('em-items').innerHTML=!allI.length?emRowD('登録なし'):
+    allI.map(it=>{const u=USERS[it._o];
+      return`<div class="em-row"><div class="em-check" style="background:#5856D6;border-color:#5856D6;font-size:13px;">${IICO[it.item_name]||'📦'}</div>
+        <div style="flex:1;"><div class="em-task-title">${esc(it.item_name)}<span class="em-tag ${u.cls}">${u.icon}${u.name}</span></div>
+        <div style="color:rgba(255,255,255,.38);font-size:11px;">${esc(it.location)}${it.hint?' ／ ヒント: '+esc(it.hint):''}</div></div></div>`;
+    }).join('');
+}
+function toggleTask(row,name){
+  const ch=row.querySelector('.em-check'),tt=row.querySelector('.em-task-title');
+  const d=ch.classList.toggle('done');tt.classList.toggle('done',d);
+  const s=JSON.parse(localStorage.getItem('fv_em_done')||'{}');
+  if(d)s[name]=true;else delete s[name];
+  localStorage.setItem('fv_em_done',JSON.stringify(s));
+}
+
+// ===== MODAL =====
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeOut(e,id){if(e.target.id===id)closeModal(id);}
+
+// ===== UTILS =====
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const clr=ids=>ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+const dRows=pairs=>'<div>'+pairs.map(([k,v])=>{
+  const isUrl=v&&(v.startsWith('http://')||v.startsWith('https://'));
+  return`<div class="d-row"><span class="d-key">${esc(k)}</span>${
+    isUrl?`<a href="${esc(v)}" target="_blank" rel="noopener" class="d-url">🔗 タップして開く</a>`
+         :`<span class="d-val">${esc(v)}</span>`
+  }</div>`;
+}).join('')+'</div>';
+const emptyRow=m=>`<div class="card-row" style="justify-content:center;color:var(--text3);font-size:14px;cursor:default;padding:20px 0;">${m}</div>`;
+const emRowD  =m=>`<div class="em-row" style="justify-content:center;"><div style="color:rgba(255,255,255,.28);font-size:13px;">${m}</div></div>`;
+
+// ===== データ エクスポート / インポート =====
+function exportData(){
+  const data={};
+  ALL_USERS.forEach(u=>{
+    data[`fv_${u}_subs`]   = ld(u,'subs');
+    data[`fv_${u}_assets`] = ld(u,'assets');
+    data[`fv_${u}_items`]  = ld(u,'items');
+  });
+  data['fv_contacts'] = ldC();
+  data['fv_em_done']  = JSON.parse(localStorage.getItem('fv_em_done')||'{}');
+  const date = new Date().toISOString().slice(0,10);
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download=`family-vault-${date}.json`; a.click();
+  URL.revokeObjectURL(url);
+  closeModal('modal-settings');
+}
+function importData(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      Object.entries(data).forEach(([k,v])=>localStorage.setItem(k,JSON.stringify(v)));
+      alert('インポート完了！アプリを再読み込みします。');
+      location.reload();
+    }catch{
+      alert('読み込みに失敗しました。正しいFamily VaultのJSONファイルを選択してください。');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value=''; // 同じファイルを再選択できるようリセット
+}
+
+// ページ読み込み時に既存データのURL欄を自動補完
+applyMissingUrls();
+
+// ===== PWA: Service Worker 登録 =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
+</script>
+</body>
+</html>
