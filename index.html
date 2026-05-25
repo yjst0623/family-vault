@@ -582,10 +582,6 @@ body {
     </div>
   </div>
 
-  <!-- Family contacts strip -->
-  <div class="sec-label">👪 家族の連絡先</div>
-  <div class="contact-strip" id="home-contact-strip"></div>
-
   <!-- Subscription list -->
   <div class="sec-label" id="sub-list-label">サービス一覧</div>
   <div class="card" id="sub-list"></div>
@@ -1058,21 +1054,6 @@ function phoneAsAsSubs(user) {
 function renderHome(){
   buildBar('home');
   document.getElementById('m-sub-title').textContent=`${VU().name}のサービスを追加`;
-
-  // 家族の連絡先ストリップ
-  const contacts=ldC();
-  document.getElementById('home-contact-strip').innerHTML=FAMILY.map(f=>{
-    const c=contacts[f.id]||{};
-    const phone=c.phone||'';
-    return`<div class="cs-card">
-      <div class="cs-head">
-        <div class="cs-av" style="background:${f.bg};">${f.icon}</div>
-        <div><div class="cs-name">${f.name}</div><div class="cs-role">${f.role}</div></div>
-      </div>
-      <div class="cs-phone">${phone||'番号未登録'}</div>
-      ${phone?`<a href="tel:${esc(phone)}" class="cs-call">📞 電話する</a>`:`<div class="cs-none">家族タブで登録</div>`}
-    </div>`;
-  }).join('');
 
   // 合計：サブスク ＋ スマホ資産（家族4人）
   const memberTotals = ALL_USERS.map(u=>({
