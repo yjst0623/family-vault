@@ -287,17 +287,24 @@ body {
 /* ============================================================
    CATEGORY GRID
    ============================================================ */
-.cat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; margin: 0 14px; }
+.cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin: 0 14px; }
 .cat-cell {
-  background: var(--surface); border-radius: var(--r-lg);
-  padding: 15px 8px 11px; display: flex; flex-direction: column;
-  align-items: center; gap: 6px; cursor: pointer; box-shadow: var(--sh-xs);
+  background: var(--surface); border-radius: var(--r-md);
+  padding: 12px 6px 10px; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; cursor: pointer; box-shadow: var(--sh-xs);
   transition: transform .12s, box-shadow .12s;
 }
 .cat-cell:active { transform: scale(0.95); box-shadow: var(--sh-md); }
-.cat-icon  { font-size: 24px; }
-.cat-name  { font-size: 11px; font-weight: 700; color: var(--text); text-align: center; }
-.cat-count { font-size: 10px; color: var(--text2); font-weight: 600; }
+.cat-icon  { font-size: 20px; }
+.cat-name  { font-size: 10px; font-weight: 700; color: var(--text); text-align: center; line-height: 1.2; }
+.cat-count { font-size: 10px; color: var(--navy); font-weight: 700; }
+.asset-back-btn {
+  display: flex; align-items: center; gap: 5px;
+  margin: 14px 14px 4px; padding: 8px 14px;
+  background: var(--surface); border: 1px solid var(--sep);
+  border-radius: var(--r-md); font-size: 13px; font-weight: 700;
+  color: var(--navy); cursor: pointer; box-shadow: var(--sh-xs);
+}
 
 /* ============================================================
    ITEMS HERO PANEL
@@ -700,10 +707,17 @@ body {
   <div id="ub-assets"></div>
   <div id="vb-assets" class="view-notice"></div>
 
-  <div class="sec-label">カテゴリー</div>
-  <div class="cat-grid" id="cat-grid"></div>
-  <div class="sec-label" id="asset-list-hdr" style="display:none;"></div>
-  <div class="card" id="asset-list" style="display:none;"></div>
+  <!-- カテゴリグリッド -->
+  <div id="cat-grid-wrap">
+    <div class="sec-label">カテゴリー</div>
+    <div class="cat-grid" id="cat-grid"></div>
+  </div>
+  <!-- カテゴリ内リスト（ドリルダウン） -->
+  <div id="asset-list-wrap" style="display:none;">
+    <button class="asset-back-btn" onclick="backToCatGrid()">‹ カテゴリーへ戻る</button>
+    <div class="sec-label" id="asset-list-hdr"></div>
+    <div class="card" id="asset-list"></div>
+  </div>
   <div class="scroll-pad"></div>
 </div>
 
@@ -1306,8 +1320,12 @@ function renderAssets(){
         <div class="cat-icon">${m.icon}</div><div class="cat-name">${c}</div><div class="cat-count">${cnt}件</div></div>`;
     }).join('');
 
-  if(currentAssetCat) showCat(currentAssetCat);
-  else renderAssetList(null);
+  if(currentAssetCat){
+    showCat(currentAssetCat);
+  } else {
+    document.getElementById('cat-grid-wrap').style.display='block';
+    document.getElementById('asset-list-wrap').style.display='none';
+  }
 }
 function showCat(c){
   currentAssetCat=c;
@@ -1318,7 +1336,19 @@ function showCat(c){
     ab.onclick=()=>{ openModal('modal-add-asset'); document.getElementById('a-cat').value=c; onCatChange(); };
   }
   ab.disabled=!canEdit();
+  // ドリルダウン：グリッドを隠してリストを表示
+  document.getElementById('cat-grid-wrap').style.display='none';
+  document.getElementById('asset-list-wrap').style.display='block';
   renderAssetList(c);
+}
+function backToCatGrid(){
+  currentAssetCat=null;
+  document.getElementById('cat-grid-wrap').style.display='block';
+  document.getElementById('asset-list-wrap').style.display='none';
+  const ab=document.getElementById('assets-add-btn');
+  ab.onclick=()=>openModal('modal-add-asset');
+  ab.disabled=!canEdit();
+  renderAssets();
 }
 function renderAssetList(fc){
   const hdr=document.getElementById('asset-list-hdr'), lst=document.getElementById('asset-list');
