@@ -852,15 +852,18 @@ body {
     <div class="m-handle"></div>
     <div class="m-title" id="m-asset-title">契約・資産を追加</div>
     <div class="fg"><label class="fl">会社名</label><input class="fi" id="a-company" placeholder="例: SBI証券" oninput="suggestUrl()" /></div>
-    <div class="fg"><label class="fl">カテゴリー</label><select class="fi fi-sel" id="a-cat" onchange="onCatChange()"><option>銀行</option><option>証券</option><option>クレジットカード</option><option>保険</option><option>スマホ</option><option>電子決済</option><option>クラウド・AI</option><option>SNS</option><option>その他</option></select></div>
+    <div class="fg"><label class="fl">カテゴリー</label><select class="fi fi-sel" id="a-cat" onchange="onCatChange()"><option>銀行</option><option>証券</option><option>クレジットカード</option><option>保険</option><option>スマホ</option><option>電子決済</option><option>クラウド・AI</option><option>メール</option><option>インターネット</option><option>その他</option></select></div>
     <!-- 銀行専用フィールド -->
     <div id="a-bank-fields" style="display:none;">
       <div class="fg"><label class="fl">支店名</label><input class="fi" id="a-branch" placeholder="例: 渋谷支店" /></div>
     </div>
+    <!-- 月額料金（スマホ・インターネット共通） -->
+    <div id="a-price-field" style="display:none;">
+      <div class="fg"><label class="fl">月額料金（円）</label><input class="fi" id="a-price" type="number" placeholder="2980" /></div>
+    </div>
     <!-- スマホ専用フィールド -->
     <div id="a-phone-fields" style="display:none;">
       <div class="f-row2" style="margin-bottom:13px;">
-        <div class="fg" style="margin-bottom:0;"><label class="fl">月額料金（円）</label><input class="fi" id="a-price" type="number" placeholder="2980" /></div>
         <div class="fg" style="margin-bottom:0;"><label class="fl">SIMスロット</label><select class="fi fi-sel" id="a-sim"><option value="">指定なし</option><option>SIM1</option><option>SIM2</option></select></div>
       </div>
       <div class="fg"><label class="fl">支払い方法</label><input class="fi" id="a-pay-phone" placeholder="例: 楽天カード" /></div>
@@ -1011,7 +1014,8 @@ const CAT = {
   'スマホ':         {icon:'📱', color:'#0093D0'},
   '電子決済':       {icon:'📲', color:'#E8344B'},
   'クラウド・AI':   {icon:'🌐', color:'#7B52E8'},
-  'SNS':            {icon:'💬', color:'#C0264A'},
+  'メール':         {icon:'✉️', color:'#1DB954'},
+  'インターネット': {icon:'🌐', color:'#0093D0'},
   'その他':         {icon:'📁', color:'#576070'},
 };
 const SCAT = {動画:'🎬',音楽:'🎵',習い事:'📚',通信:'📡',光熱費:'💡',その他:'📂'};
@@ -1164,15 +1168,15 @@ function setAdd(id){document.getElementById(id).disabled=!canEdit();}
 // ===== HOME =====
 const mp = s => s.cycle === '年額' ? Math.round(s.price / 12) : s.price;
 
-// スマホ資産のうち月額料金が登録されているものを「仮想サブスク」として返す
+// スマホ・インターネット資産のうち月額料金が登録されているものを「仮想サブスク」として返す
 function phoneAsAsSubs(user) {
   return ld(user, 'assets')
-    .filter(a => a.category === 'スマホ' && a.monthly_price > 0)
+    .filter(a => ['スマホ','インターネット','保険'].includes(a.category) && a.monthly_price > 0)
     .map(a => ({
       _fromAsset: true,
       id: a.id,
       service_name: a.company_name + (a.sim_slot ? ` (${a.sim_slot})` : ''),
-      category: 'スマホ',
+      category: a.category,
       price: a.monthly_price,
       cycle: '月額',
       payment_method: a.payment_method_phone || '',
@@ -1311,7 +1315,7 @@ function showCat(c){
   if(c==='サブスク'){
     ab.onclick=()=>openModal('modal-add-sub');
   } else {
-    ab.onclick=()=>openModal('modal-add-asset');
+    ab.onclick=()=>{ openModal('modal-add-asset'); document.getElementById('a-cat').value=c; onCatChange(); };
   }
   ab.disabled=!canEdit();
   renderAssetList(c);
@@ -1359,8 +1363,10 @@ function renderAssetList(fc){
 }
 function onCatChange(){
   const cat = document.getElementById('a-cat').value;
-  document.getElementById('a-bank-fields').style.display  = cat === '銀行'  ? 'block' : 'none';
+  const showPrice = ['スマホ','インターネット','保険'].includes(cat);
+  document.getElementById('a-bank-fields').style.display  = cat === '銀行' ? 'block' : 'none';
   document.getElementById('a-phone-fields').style.display = cat === 'スマホ' ? 'block' : 'none';
+  document.getElementById('a-price-field').style.display  = showPrice ? 'block' : 'none';
 }
 function addAsset(){
   const company=document.getElementById('a-company').value.trim();
@@ -1382,6 +1388,9 @@ function addAsset(){
     entry.sim_slot            = document.getElementById('a-sim').value;
     entry.payment_method_phone= document.getElementById('a-pay-phone').value.trim();
   }
+  if(cat==='インターネット'||cat==='保険'){
+    entry.monthly_price = parseInt(document.getElementById('a-price').value)||0;
+  }
   const a=ld(et(),'assets');
   if(editingAssetId){
     const i=a.findIndex(x=>x.id===editingAssetId);
@@ -1402,7 +1411,8 @@ function resetAssetForm(){
   document.getElementById('asset-submit-btn').textContent='追加する';
   document.getElementById('a-bank-fields').style.display='none';
   document.getElementById('a-phone-fields').style.display='none';
-  document.getElementById('a-cat').value='銀行';
+  document.getElementById('a-price-field').style.display='none';
+  document.getElementById('a-cat').value='その他';
   onCatChange();
 }
 function editAsset(id){
@@ -1419,10 +1429,15 @@ function editAsset(id){
     document.getElementById('a-branch').value = a.branch_name||'';
   }
   if(a.category==='スマホ'){
+    document.getElementById('a-price-field').style.display='block';
     document.getElementById('a-phone-fields').style.display='block';
     document.getElementById('a-price').value     = a.monthly_price||'';
     document.getElementById('a-sim').value       = a.sim_slot||'';
     document.getElementById('a-pay-phone').value = a.payment_method_phone||'';
+  }
+  if(a.category==='インターネット'||a.category==='保険'){
+    document.getElementById('a-price-field').style.display='block';
+    document.getElementById('a-price').value = a.monthly_price||'';
   }
   editingAssetId=id;
   document.getElementById('m-asset-title').textContent='契約・資産を編集';
