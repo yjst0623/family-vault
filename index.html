@@ -852,22 +852,29 @@ body {
     <div class="m-handle"></div>
     <div class="m-title" id="m-asset-title">契約・資産を追加</div>
     <div class="fg"><label class="fl">会社名</label><input class="fi" id="a-company" placeholder="例: SBI証券" oninput="suggestUrl()" /></div>
-    <div class="fg"><label class="fl">カテゴリー</label><select class="fi fi-sel" id="a-cat" onchange="onCatChange()"><option>銀行</option><option>証券</option><option>クレジットカード</option><option>保険</option><option>スマホ</option><option>電子決済</option><option>クラウド・AI</option><option>メール</option><option>インターネット</option><option>その他</option></select></div>
-    <!-- 銀行専用フィールド -->
+    <div class="fg"><label class="fl">カテゴリー</label><select class="fi fi-sel" id="a-cat" onchange="onCatChange()"><option>銀行</option><option>証券</option><option>クレジットカード</option><option>保険</option><option>ローン</option><option>スマホ</option><option>電子決済</option><option>クラウド・AI</option><option>メール</option><option>インターネット</option><option>その他</option></select></div>
+    <!-- 銀行専用 -->
     <div id="a-bank-fields" style="display:none;">
       <div class="fg"><label class="fl">支店名</label><input class="fi" id="a-branch" placeholder="例: 渋谷支店" /></div>
     </div>
-    <!-- 月額料金（スマホ・インターネット共通） -->
+    <!-- 月額料金（スマホ・インターネット・保険・ローン） -->
     <div id="a-price-field" style="display:none;">
       <div class="fg"><label class="fl">月額料金（円）</label><input class="fi" id="a-price" type="number" placeholder="2980" /></div>
     </div>
-    <!-- スマホ専用フィールド -->
-    <div id="a-phone-fields" style="display:none;">
-      <div class="f-row2" style="margin-bottom:13px;">
-        <div class="fg" style="margin-bottom:0;"><label class="fl">SIMスロット</label><select class="fi fi-sel" id="a-sim"><option value="">指定なし</option><option>SIM1</option><option>SIM2</option></select></div>
-      </div>
-      <div class="fg"><label class="fl">支払い方法</label><input class="fi" id="a-pay-phone" placeholder="例: 楽天カード" /></div>
+    <!-- ローン専用 -->
+    <div id="a-loan-fields" style="display:none;">
+      <div class="fg"><label class="fl">ローン種別</label><select class="fi fi-sel" id="a-loan-type"><option>住宅ローン</option><option>車のローン</option><option>その他ローン</option></select></div>
     </div>
+    <!-- 支払い終了年月（保険・ローン） -->
+    <div id="a-end-date-field" style="display:none;">
+      <div class="fg"><label class="fl">支払い終了年月</label><input class="fi" id="a-end-date" type="month" /></div>
+    </div>
+    <!-- スマホ専用 -->
+    <div id="a-phone-fields" style="display:none;">
+      <div class="fg"><label class="fl">SIMスロット</label><select class="fi fi-sel" id="a-sim"><option value="">指定なし</option><option>SIM1</option><option>SIM2</option></select></div>
+    </div>
+    <!-- 全カテゴリ共通 -->
+    <div class="fg"><label class="fl">支払い方法</label><input class="fi" id="a-payment" placeholder="例: 楽天カード・口座引き落とし" /></div>
     <div class="fg"><label class="fl">名義</label><select class="fi fi-sel" id="a-holder"><option>本人</option><option>配偶者</option><option>共同</option><option>親</option></select></div>
     <div class="fg"><label class="fl">登録メールアドレス</label><input class="fi" id="a-email" type="email" placeholder="例: name@gmail.com" /></div>
     <div class="fg"><label class="fl">契約番号（任意）</label><input class="fi" id="a-policy" placeholder="電話番号・証書番号など" /></div>
@@ -1011,6 +1018,7 @@ const CAT = {
   '証券':           {icon:'📈', color:'#1A8A5A'},
   'クレジットカード':{icon:'💳', color:'#5856D6'},
   '保険':           {icon:'🛡️', color:'#D4820A'},
+  'ローン':         {icon:'💰', color:'#E67E22'},
   'スマホ':         {icon:'📱', color:'#0093D0'},
   '電子決済':       {icon:'📲', color:'#E8344B'},
   'クラウド・AI':   {icon:'🌐', color:'#7B52E8'},
@@ -1171,7 +1179,7 @@ const mp = s => s.cycle === '年額' ? Math.round(s.price / 12) : s.price;
 // スマホ・インターネット資産のうち月額料金が登録されているものを「仮想サブスク」として返す
 function phoneAsAsSubs(user) {
   return ld(user, 'assets')
-    .filter(a => ['スマホ','インターネット','保険'].includes(a.category) && a.monthly_price > 0)
+    .filter(a => ['スマホ','インターネット','保険','ローン'].includes(a.category) && a.monthly_price > 0)
     .map(a => ({
       _fromAsset: true,
       id: a.id,
@@ -1363,10 +1371,13 @@ function renderAssetList(fc){
 }
 function onCatChange(){
   const cat = document.getElementById('a-cat').value;
-  const showPrice = ['スマホ','インターネット','保険'].includes(cat);
-  document.getElementById('a-bank-fields').style.display  = cat === '銀行' ? 'block' : 'none';
-  document.getElementById('a-phone-fields').style.display = cat === 'スマホ' ? 'block' : 'none';
-  document.getElementById('a-price-field').style.display  = showPrice ? 'block' : 'none';
+  const showPrice   = ['スマホ','インターネット','保険','ローン'].includes(cat);
+  const showEndDate = ['保険','ローン'].includes(cat);
+  document.getElementById('a-bank-fields').style.display    = cat === '銀行'  ? 'block' : 'none';
+  document.getElementById('a-phone-fields').style.display   = cat === 'スマホ' ? 'block' : 'none';
+  document.getElementById('a-loan-fields').style.display    = cat === 'ローン' ? 'block' : 'none';
+  document.getElementById('a-price-field').style.display    = showPrice   ? 'block' : 'none';
+  document.getElementById('a-end-date-field').style.display = showEndDate ? 'block' : 'none';
 }
 function addAsset(){
   const company=document.getElementById('a-company').value.trim();
@@ -1374,6 +1385,7 @@ function addAsset(){
   const cat=document.getElementById('a-cat').value;
   const entry={
     company_name:company, category:cat,
+    payment_method:document.getElementById('a-payment').value.trim(),
     account_holder:document.getElementById('a-holder').value,
     registered_email:document.getElementById('a-email').value.trim(),
     policy_number:document.getElementById('a-policy').value.trim(),
@@ -1384,12 +1396,18 @@ function addAsset(){
     entry.branch_name = document.getElementById('a-branch').value.trim();
   }
   if(cat==='スマホ'){
-    entry.monthly_price       = parseInt(document.getElementById('a-price').value)||0;
-    entry.sim_slot            = document.getElementById('a-sim').value;
-    entry.payment_method_phone= document.getElementById('a-pay-phone').value.trim();
-  }
-  if(cat==='インターネット'||cat==='保険'){
     entry.monthly_price = parseInt(document.getElementById('a-price').value)||0;
+    entry.sim_slot      = document.getElementById('a-sim').value;
+  }
+  if(['スマホ','インターネット','保険','ローン'].includes(cat)){
+    entry.monthly_price = parseInt(document.getElementById('a-price').value)||0;
+  }
+  if(cat==='ローン'){
+    entry.loan_type   = document.getElementById('a-loan-type').value;
+    entry.payment_end = document.getElementById('a-end-date').value;
+  }
+  if(cat==='保険'){
+    entry.payment_end = document.getElementById('a-end-date').value;
   }
   const a=ld(et(),'assets');
   if(editingAssetId){
@@ -1401,7 +1419,7 @@ function addAsset(){
   }
   sv(et(),'assets',a);
   closeModal('modal-add-asset');
-  clr(['a-company','a-branch','a-email','a-policy','a-contact','a-memo','a-price','a-pay-phone']);
+  clr(['a-company','a-branch','a-email','a-policy','a-contact','a-memo','a-price','a-payment','a-end-date']);
   resetAssetForm();
   renderAssets(); renderHome();
 }
@@ -1411,33 +1429,39 @@ function resetAssetForm(){
   document.getElementById('asset-submit-btn').textContent='追加する';
   document.getElementById('a-bank-fields').style.display='none';
   document.getElementById('a-phone-fields').style.display='none';
+  document.getElementById('a-loan-fields').style.display='none';
   document.getElementById('a-price-field').style.display='none';
+  document.getElementById('a-end-date-field').style.display='none';
   document.getElementById('a-cat').value='その他';
   onCatChange();
 }
 function editAsset(id){
   const a=ld(et(),'assets').find(x=>x.id===id); if(!a)return;
-  document.getElementById('a-company').value       = a.company_name;
-  document.getElementById('a-cat').value           = a.category;
-  document.getElementById('a-holder').value        = a.account_holder||'本人';
-  document.getElementById('a-email').value         = a.registered_email||'';
-  document.getElementById('a-policy').value        = a.policy_number||'';
-  document.getElementById('a-contact').value       = a.contact_info||'';
-  document.getElementById('a-memo').value          = a.memo||'';
+  document.getElementById('a-company').value  = a.company_name;
+  document.getElementById('a-cat').value      = a.category;
+  document.getElementById('a-payment').value  = a.payment_method||a.payment_method_phone||'';
+  document.getElementById('a-holder').value   = a.account_holder||'本人';
+  document.getElementById('a-email').value    = a.registered_email||'';
+  document.getElementById('a-policy').value   = a.policy_number||'';
+  document.getElementById('a-contact').value  = a.contact_info||'';
+  document.getElementById('a-memo').value     = a.memo||'';
+  onCatChange();
   if(a.category==='銀行'){
-    document.getElementById('a-bank-fields').style.display='block';
     document.getElementById('a-branch').value = a.branch_name||'';
   }
   if(a.category==='スマホ'){
-    document.getElementById('a-price-field').style.display='block';
-    document.getElementById('a-phone-fields').style.display='block';
-    document.getElementById('a-price').value     = a.monthly_price||'';
-    document.getElementById('a-sim').value       = a.sim_slot||'';
-    document.getElementById('a-pay-phone').value = a.payment_method_phone||'';
-  }
-  if(a.category==='インターネット'||a.category==='保険'){
-    document.getElementById('a-price-field').style.display='block';
     document.getElementById('a-price').value = a.monthly_price||'';
+    document.getElementById('a-sim').value   = a.sim_slot||'';
+  }
+  if(['スマホ','インターネット','保険','ローン'].includes(a.category)){
+    document.getElementById('a-price').value = a.monthly_price||'';
+  }
+  if(a.category==='ローン'){
+    document.getElementById('a-loan-type').value = a.loan_type||'住宅ローン';
+    document.getElementById('a-end-date').value  = a.payment_end||'';
+  }
+  if(a.category==='保険'){
+    document.getElementById('a-end-date').value = a.payment_end||'';
   }
   editingAssetId=id;
   document.getElementById('m-asset-title').textContent='契約・資産を編集';
@@ -1447,9 +1471,13 @@ function editAsset(id){
 function showAssetDtl(id){
   const a=vassets().find(x=>x.id===id); if(!a)return;
   document.getElementById('dtl-asset-title').textContent=a.company_name;
+  const fmtEnd = v => { if(!v)return'—'; const[y,m]=v.split('-'); return`${y}年${parseInt(m)}月まで`; };
+  const fmtPrice = v => v ? '¥'+Number(v).toLocaleString()+'/月' : '—';
+  const pm = a.payment_method||a.payment_method_phone||'';
   const rows=[
     ['所有者', VU().icon+' '+VU().name],
     ['カテゴリー', a.category],
+    ['支払い方法', pm||'—'],
     ['名義', a.account_holder||'—'],
     ['登録メール', a.registered_email||'—'],
     ['契約番号', a.policy_number||'—'],
@@ -1461,9 +1489,24 @@ function showAssetDtl(id){
   }
   if(a.category==='スマホ'){
     rows.splice(2,0,
-      ['月額料金', a.monthly_price ? '¥'+Number(a.monthly_price).toLocaleString()+'/月' : '—'],
+      ['月額料金', fmtPrice(a.monthly_price)],
       ['SIMスロット', a.sim_slot||'—'],
-      ['支払い方法', a.payment_method_phone||'—'],
+    );
+  }
+  if(a.category==='インターネット'){
+    rows.splice(2,0,['月額料金', fmtPrice(a.monthly_price)]);
+  }
+  if(a.category==='保険'){
+    rows.splice(2,0,
+      ['月額保険料', fmtPrice(a.monthly_price)],
+      ['支払い終了', fmtEnd(a.payment_end)],
+    );
+  }
+  if(a.category==='ローン'){
+    rows.splice(2,0,
+      ['ローン種別', a.loan_type||'—'],
+      ['月額返済額', fmtPrice(a.monthly_price)],
+      ['支払い終了', fmtEnd(a.payment_end)],
     );
   }
   document.getElementById('dtl-asset-body').innerHTML=dRows(rows);
