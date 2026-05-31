@@ -495,6 +495,11 @@ body {
   border-radius: var(--r-sm); padding: 7px; font-size: 12px; font-weight: 700; cursor: pointer;
 }
 .cc-edit-btn:active { background: var(--sep); }
+.med-section { border-top: 1px solid var(--sep2); margin-top: 8px; padding-top: 8px; }
+.med-title { font-size: 10px; font-weight: 800; color: var(--success); letter-spacing: .5px; margin-bottom: 5px; }
+.med-row { display: flex; gap: 4px; margin-bottom: 3px; align-items: baseline; }
+.med-key { font-size: 9px; color: var(--text3); font-weight: 700; flex-shrink: 0; min-width: 52px; }
+.med-val { font-size: 10px; color: var(--text); font-weight: 600; line-height: 1.3; word-break: break-all; }
 
 /* ============================================================
    FAMILY CONTACTS — emergency screen
@@ -912,6 +917,9 @@ body {
       <div class="url-hint" id="url-suggest-hint"></div>
     </div>
     <div class="fg"><label class="fl">メモ</label><input class="fi" id="a-memo" placeholder="用途・補足など" /></div>
+    <div style="margin:18px 0 10px;font-size:13px;font-weight:800;color:var(--text);border-top:1px solid var(--sep);padding-top:16px;">🔑 ログイン情報（任意）</div>
+    <div class="fg"><label class="fl">ID・ユーザー名</label><input class="fi" id="a-login-id" placeholder="例: taro@example.com" /></div>
+    <div class="fg"><label class="fl">パスワード</label><input class="fi" id="a-login-pw" type="password" placeholder="登録しておくと家族が対応できます" /></div>
     <button class="btn-p" id="asset-submit-btn" onclick="addAsset()">追加する</button>
     <button class="btn-p btn-ghost" onclick="cancelAssetForm()">キャンセル</button>
   </div>
@@ -984,6 +992,15 @@ body {
     <div class="m-title" id="contact-edit-title">連絡先を編集</div>
     <input type="hidden" id="contact-edit-id" />
     <div class="fg"><label class="fl">📞 電話番号</label><input class="fi" id="contact-phone" type="tel" placeholder="例: 090-1234-5678" /></div>
+    <div style="margin:18px 0 10px;font-size:13px;font-weight:800;color:var(--text);border-top:1px solid var(--sep);padding-top:16px;">🏥 医療・緊急情報</div>
+    <div class="f-row2">
+      <div class="fg"><label class="fl">血液型</label><select class="fi fi-sel" id="contact-blood"><option value="">不明</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option></select></div>
+    </div>
+    <div class="fg"><label class="fl">アレルギー</label><input class="fi" id="contact-allergy" placeholder="例: 卵・花粉・ペニシリン" /></div>
+    <div class="fg"><label class="fl">服薬中の薬</label><input class="fi" id="contact-meds" placeholder="例: 降圧剤（アムロジピン5mg）" /></div>
+    <div class="fg"><label class="fl">かかりつけ医・病院</label><input class="fi" id="contact-doctor" placeholder="例: ○○クリニック 田中先生" /></div>
+    <div class="fg"><label class="fl">かかりつけ医 電話番号</label><input class="fi" id="contact-doctor-phone" type="tel" placeholder="例: 03-1234-5678" /></div>
+    <div class="fg"><label class="fl">その他医療メモ</label><input class="fi" id="contact-medical-notes" placeholder="例: ペースメーカー装着・透析中など" /></div>
     <button class="btn-p" onclick="saveContact()">保存する</button>
     <button class="btn-p btn-ghost" onclick="closeModal('modal-edit-contact')">キャンセル</button>
   </div>
@@ -1480,7 +1497,9 @@ function addAsset(){
     registered_email:document.getElementById('a-email').value.trim(),
     policy_number:document.getElementById('a-policy').value.trim(),
     contact_info:document.getElementById('a-contact').value.trim(),
-    memo:document.getElementById('a-memo').value.trim()
+    memo:document.getElementById('a-memo').value.trim(),
+    login_id:document.getElementById('a-login-id').value.trim(),
+    login_pw:document.getElementById('a-login-pw').value,
   };
   if(cat==='銀行'){
     entry.branch_name = document.getElementById('a-branch').value.trim();
@@ -1510,7 +1529,7 @@ function addAsset(){
   }
   sv(et(),'assets',a);
   closeModal('modal-add-asset');
-  clr(['a-company','a-branch','a-email','a-policy','a-contact','a-memo','a-price','a-payment','a-end-date']);
+  clr(['a-company','a-branch','a-email','a-policy','a-contact','a-memo','a-price','a-payment','a-end-date','a-login-id','a-login-pw']);
   resetAssetForm();
   renderAssets(); renderHome();
 }
@@ -1536,6 +1555,8 @@ function editAsset(id){
   document.getElementById('a-policy').value   = a.policy_number||'';
   document.getElementById('a-contact').value  = a.contact_info||'';
   document.getElementById('a-memo').value     = a.memo||'';
+  document.getElementById('a-login-id').value = a.login_id||'';
+  document.getElementById('a-login-pw').value = a.login_pw||'';
   onCatChange();
   if(a.category==='銀行'){
     document.getElementById('a-branch').value = a.branch_name||'';
@@ -1604,7 +1625,19 @@ function showAssetDtl(id){
   if((a.category==='クラウド・AI'||a.category==='その他')&&a.monthly_price){
     rows.splice(2,0,['料金', fmtPrice(a.monthly_price, a.payment_cycle)]);
   }
-  document.getElementById('dtl-asset-body').innerHTML=dRows(rows);
+  let html=dRows(rows);
+  if(a.login_id||a.login_pw){
+    html+=`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--sep);">
+      <div style="font-size:10px;font-weight:800;color:var(--navy);letter-spacing:.5px;margin-bottom:8px;">🔑 ログイン情報</div>
+      ${a.login_id?`<div class="d-row"><span class="d-key">ID</span><span class="d-val">${esc(a.login_id)}</span></div>`:''}
+      ${a.login_pw?`<div class="d-row"><span class="d-key">パスワード</span>
+        <span id="pw-disp" class="d-val" style="letter-spacing:2px;">••••••••</span>
+        <button onclick="togglePw()" style="font-size:11px;color:var(--navy);background:none;border:none;cursor:pointer;padding:0 0 0 8px;">表示</button>
+      </div>`:''}
+    </div>`;
+  }
+  document.getElementById('dtl-asset-body').innerHTML=html;
+  if(a.login_pw) document.getElementById('dtl-asset-body')._pw=a.login_pw;
   const own=canEdit();
   const eb=document.getElementById('dtl-asset-edit');
   const db=document.getElementById('dtl-asset-del');
@@ -1613,6 +1646,16 @@ function showAssetDtl(id){
   eb.onclick=()=>editAsset(id);
   db.onclick=()=>{sv(et(),'assets',ld(et(),'assets').filter(x=>x.id!==id));closeModal('modal-asset-dtl');renderAssets();renderHome();};
   openModal('modal-asset-dtl');
+}
+
+let _pwVisible=false;
+function togglePw(){
+  _pwVisible=!_pwVisible;
+  const body=document.getElementById('dtl-asset-body');
+  const disp=document.getElementById('pw-disp');
+  if(disp) disp.textContent=_pwVisible?(body._pw||''):'••••••••';
+  const btn=disp?.nextElementSibling;
+  if(btn) btn.textContent=_pwVisible?'隠す':'表示';
 }
 
 // ===== ITEMS =====
@@ -1696,8 +1739,7 @@ function renderContacts(){
   document.getElementById('contact-grid').innerHTML=FAMILY.map(f=>{
     const c=contacts[f.id]||{};
     const phone=c.phone||'';
-    const line =c.line||'';
-    const lineUrl=line?`https://line.me/R/ti/p/~${encodeURIComponent(line)}`:'';
+    const hasMed=c.blood_type||c.allergies||c.medications||c.doctor_name;
     return`<div class="contact-card">
       <div class="cc-top">
         <div class="cc-avatar" style="background:${f.bg};">${f.icon}</div>
@@ -1709,6 +1751,15 @@ function renderContacts(){
       <div class="cc-btns">
         ${phone?`<a href="tel:${esc(phone)}" class="cc-call-btn">📞 電話する</a>`:`<span class="cc-call-btn" style="opacity:.3;cursor:default;">📞 未登録</span>`}
       </div>
+      ${hasMed?`<div class="med-section">
+        <div class="med-title">🏥 医療情報</div>
+        ${c.blood_type?`<div class="med-row"><span class="med-key">血液型</span><span class="med-val">${esc(c.blood_type)}</span></div>`:''}
+        ${c.allergies?`<div class="med-row"><span class="med-key">アレルギー</span><span class="med-val">${esc(c.allergies)}</span></div>`:''}
+        ${c.medications?`<div class="med-row"><span class="med-key">服薬中の薬</span><span class="med-val">${esc(c.medications)}</span></div>`:''}
+        ${c.doctor_name?`<div class="med-row"><span class="med-key">かかりつけ医</span><span class="med-val">${esc(c.doctor_name)}</span></div>`:''}
+        ${c.doctor_phone?`<div class="med-row"><span class="med-key">医院TEL</span><a href="tel:${esc(c.doctor_phone)}" class="med-val" style="color:var(--navy);">${esc(c.doctor_phone)}</a></div>`:''}
+        ${c.medical_notes?`<div class="med-row"><span class="med-key">メモ</span><span class="med-val">${esc(c.medical_notes)}</span></div>`:''}
+      </div>`:''}
       <button class="cc-edit-btn" onclick="openContactEdit('${f.id}')">✏️ 編集する</button>
     </div>`;
   }).join('');
@@ -1717,19 +1768,31 @@ function openContactEdit(id){
   const f=FAMILY.find(x=>x.id===id); if(!f)return;
   const c=ldC()[id]||{};
   document.getElementById('contact-edit-id').value=id;
-  document.getElementById('contact-edit-title').textContent=`${f.name}の連絡先を編集`;
+  document.getElementById('contact-edit-title').textContent=`${f.name}の情報を編集`;
   document.getElementById('contact-phone').value=c.phone||'';
+  document.getElementById('contact-blood').value=c.blood_type||'';
+  document.getElementById('contact-allergy').value=c.allergies||'';
+  document.getElementById('contact-meds').value=c.medications||'';
+  document.getElementById('contact-doctor').value=c.doctor_name||'';
+  document.getElementById('contact-doctor-phone').value=c.doctor_phone||'';
+  document.getElementById('contact-medical-notes').value=c.medical_notes||'';
   openModal('modal-edit-contact');
 }
 function saveContact(){
-  const id   =document.getElementById('contact-edit-id').value;
-  const phone=document.getElementById('contact-phone').value.trim();
+  const id=document.getElementById('contact-edit-id').value;
   const all=ldC();
-  all[id]={...(all[id]||{}), phone};
+  all[id]={...(all[id]||{}),
+    phone:        document.getElementById('contact-phone').value.trim(),
+    blood_type:   document.getElementById('contact-blood').value,
+    allergies:    document.getElementById('contact-allergy').value.trim(),
+    medications:  document.getElementById('contact-meds').value.trim(),
+    doctor_name:  document.getElementById('contact-doctor').value.trim(),
+    doctor_phone: document.getElementById('contact-doctor-phone').value.trim(),
+    medical_notes:document.getElementById('contact-medical-notes').value.trim(),
+  };
   svC(all);
   closeModal('modal-edit-contact');
   renderContacts();
-  // ホーム画面が表示中なら更新
   if(document.getElementById('screen-home').classList.contains('active')) renderHome();
 }
 
@@ -1816,7 +1879,7 @@ function openModal(id){
   const modal=el.querySelector('.modal');
   if(modal) modal.scrollTop=0;
 }
-function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open'); if(id==='modal-asset-dtl'){_pwVisible=false;}}
 function closeOut(e,id){if(e.target.id===id)closeModal(id);}
 
 // ===== UTILS =====
