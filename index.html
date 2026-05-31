@@ -253,9 +253,14 @@ body {
 .tp-col { flex: 1; }
 .tp-col + .tp-col { border-left: 1px solid var(--sep); padding-left: 14px; }
 .tp-who { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
-.tp-dot { width: 6px; height: 6px; border-radius: 50%; }
 .tp-who-name { font-size: 11px; font-weight: 700; color: var(--text2); }
 .tp-val { font-size: 18px; font-weight: 800; color: var(--navy); letter-spacing: -.5px; }
+/* スライダー */
+.tp-slider { display: flex; overflow: hidden; }
+.tp-slide  { min-width: 100%; transition: transform .3s ease; }
+.tp-dots   { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
+.tp-dot    { width: 6px; height: 6px; border-radius: 50%; background: var(--sep); transition: background .2s; }
+.tp-dot.active { background: var(--navy); }
 
 /* ============================================================
    REMINDER — amber strip card
@@ -657,13 +662,30 @@ body {
   <!-- User bar -->
   <div id="ub-home"></div>
   <div id="vb-home" class="view-notice"></div>
-  <!-- Total panel — overlaps header bottom -->
+  <!-- Total panel — スライド切り替え -->
   <div style="padding: 14px 0 0;">
-    <div class="total-panel">
-      <div class="tp-label">月額固定費 — 家族合計</div>
-      <div class="tp-amount"><span class="yen">¥</span><span id="total-num">0</span></div>
-      <div class="tp-sub" id="total-sub">0件のサービス契約中</div>
-      <div id="member-totals"></div>
+    <div class="total-panel" id="total-panel-wrap">
+      <div class="tp-slider" id="tp-slider">
+        <!-- Slide 0: 月額 -->
+        <div class="tp-slide">
+          <div class="tp-label">月額固定費 — 家族合計</div>
+          <div class="tp-amount"><span class="yen">¥</span><span id="total-num">0</span></div>
+          <div class="tp-sub" id="total-sub">0件のサービス契約中</div>
+          <div id="member-totals"></div>
+        </div>
+        <!-- Slide 1: 年額 -->
+        <div class="tp-slide">
+          <div class="tp-label">年払い固定費 — 家族合計</div>
+          <div class="tp-amount"><span class="yen">¥</span><span id="total-num-yr">0</span><span style="font-size:14px;font-weight:600;color:var(--text2);margin-left:4px;">/年</span></div>
+          <div class="tp-sub" id="total-sub-yr">0件の年払い契約</div>
+          <div id="member-totals-yr"></div>
+        </div>
+      </div>
+      <!-- ドットインジケーター -->
+      <div class="tp-dots">
+        <div class="tp-dot active" id="tp-dot-0"></div>
+        <div class="tp-dot" id="tp-dot-1"></div>
+      </div>
     </div>
   </div>
 
@@ -1137,6 +1159,32 @@ function selectUser(u){
   showScreen('home');
 }
 
+// ===== TOTAL PANEL SLIDER =====
+let tpSlide=0;
+function initTpSlider(){
+  tpSlide=0; slideTo(0);
+  const panel=document.getElementById('total-panel-wrap');
+  if(panel._sliderInit) return;
+  panel._sliderInit=true;
+  let sx=0;
+  panel.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
+  panel.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx;
+    if(Math.abs(dx)>40){
+      if(dx<0 && tpSlide===0) slideTo(1);
+      else if(dx>0 && tpSlide===1) slideTo(0);
+    }
+  });
+  panel.addEventListener('click',()=>slideTo(tpSlide===0?1:0));
+}
+function slideTo(n){
+  tpSlide=n;
+  const slides=document.getElementById('tp-slider').children;
+  for(let i=0;i<slides.length;i++) slides[i].style.transform=`translateX(${(i-n)*100}%)`;
+  document.getElementById('tp-dot-0').classList.toggle('active',n===0);
+  document.getElementById('tp-dot-1').classList.toggle('active',n===1);
+}
+
 // ===== NAV =====
 const SCRS=['login','home','assets','items','contacts','emergency'];
 function showScreen(n){
@@ -1194,31 +1242,46 @@ function phoneAsAsSubs(user) {
     }));
 }
 
+function memberGrid(totals){
+  return`<div style="display:grid;grid-template-columns:1fr 1fr;margin-top:13px;padding-top:12px;border-top:1px solid var(--sep);">
+    ${totals.map(({u,t},i)=>`
+      <div style="padding:${i>=2?'10px 0 0':'0'} ${i%2===1?'0 0 0 14px':'0 0 0 0'};${i%2===1?'border-left:1px solid var(--sep);':''} ${i>=2?'border-top:1px solid var(--sep2);':''}">
+        <div class="tp-who"><div class="tp-dot" style="background:${USERS[u].color};"></div><div class="tp-who-name">${USERS[u].name}</div></div>
+        <div class="tp-val">¥${t.toLocaleString()}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
 function renderHome(){
   buildBar('home');
   document.getElementById('m-sub-title').textContent=`${VU().name}のサービスを追加`;
 
-  // 合計：サブスク ＋ スマホ資産（家族4人）
-  const memberTotals = ALL_USERS.map(u=>({
+  // 月額合計
+  const mTotals = ALL_USERS.map(u=>({
     u,
     t: ld(u,'subs').reduce((s,x)=>s+mp(x),0) + phoneAsAsSubs(u).reduce((s,x)=>s+x.price,0),
     cnt: ld(u,'subs').length + phoneAsAsSubs(u).length,
   }));
-  const grandTotal = memberTotals.reduce((s,x)=>s+x.t,0);
-  const allCnt     = memberTotals.reduce((s,x)=>s+x.cnt,0);
+  const mGrand = mTotals.reduce((s,x)=>s+x.t,0);
+  const mCnt   = mTotals.reduce((s,x)=>s+x.cnt,0);
+  document.getElementById('total-num').textContent=mGrand.toLocaleString();
+  document.getElementById('total-sub').textContent=mCnt+'件のサービス契約中（家族合計）';
+  document.getElementById('member-totals').innerHTML=memberGrid(mTotals);
 
-  document.getElementById('total-num').textContent=grandTotal.toLocaleString();
-  document.getElementById('total-sub').textContent=allCnt+'件のサービス契約中（家族合計）';
+  // 年払い合計
+  const yTotals = ALL_USERS.map(u=>({
+    u,
+    t: ld(u,'assets').filter(a=>a.payment_cycle==='年払い'&&a.monthly_price>0).reduce((s,a)=>s+a.monthly_price,0),
+    cnt: ld(u,'assets').filter(a=>a.payment_cycle==='年払い'&&a.monthly_price>0).length,
+  }));
+  const yGrand = yTotals.reduce((s,x)=>s+x.t,0);
+  const yCnt   = yTotals.reduce((s,x)=>s+x.cnt,0);
+  document.getElementById('total-num-yr').textContent=yGrand.toLocaleString();
+  document.getElementById('total-sub-yr').textContent=yCnt+'件の年払い契約（家族合計）';
+  document.getElementById('member-totals-yr').innerHTML=memberGrid(yTotals);
 
-  // 2×2 グリッド
-  document.getElementById('member-totals').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;margin-top:13px;padding-top:12px;border-top:1px solid var(--sep);">
-      ${memberTotals.map(({u,t},i)=>`
-        <div style="padding:${i>=2?'10px 0 0':'0'} ${i%2===1?'0 0 0 14px':'0 0 0 0'};${i%2===1?'border-left:1px solid var(--sep);':''} ${i>=2?'border-top:1px solid var(--sep2);':''}">
-          <div class="tp-who"><div class="tp-dot" style="background:${USERS[u].color};"></div><div class="tp-who-name">${USERS[u].name}</div></div>
-          <div class="tp-val">¥${t.toLocaleString()}</div>
-        </div>`).join('')}
-    </div>`;
+  // スライダー初期化
+  initTpSlider();
   document.getElementById('sub-list-label').textContent=isV()?`${VU().name}のサービス一覧`:'自分のサービス一覧';
 
   // 表示リスト：サブスク ＋ スマホ資産（閲覧ユーザー分）
