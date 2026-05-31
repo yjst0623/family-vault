@@ -255,12 +255,11 @@ body {
 .tp-who { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
 .tp-who-name { font-size: 11px; font-weight: 700; color: var(--text2); }
 .tp-val { font-size: 18px; font-weight: 800; color: var(--navy); letter-spacing: -.5px; }
-/* スライダー */
-.tp-slider-outer { overflow: hidden; }
-.tp-slider-track { display: flex; transition: transform .35s ease; }
-.tp-slide        { min-width: 100%; flex-shrink: 0; }
+/* パネル切り替え */
+.tp-slide { display: none; }
+.tp-slide.active { display: block; }
 .tp-dots   { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
-.tp-dot-ind { width: 6px; height: 6px; border-radius: 50%; background: var(--sep); transition: background .2s; }
+.tp-dot-ind { width: 6px; height: 6px; border-radius: 50%; background: var(--sep); transition: background .2s; cursor: pointer; }
 .tp-dot-ind.active { background: var(--navy); }
 
 /* ============================================================
@@ -666,24 +665,19 @@ body {
   <!-- Total panel — スライド切り替え -->
   <div style="padding: 14px 0 0;">
     <div class="total-panel" id="total-panel-wrap">
-      <!-- スライド外枠（overflow:hidden） -->
-      <div class="tp-slider-outer">
-        <div class="tp-slider-track" id="tp-track">
-          <!-- Slide 0: 月額 -->
-          <div class="tp-slide">
-            <div class="tp-label">月額固定費 — 家族合計</div>
-            <div class="tp-amount"><span class="yen">¥</span><span id="total-num">0</span></div>
-            <div class="tp-sub" id="total-sub">0件のサービス契約中</div>
-            <div id="member-totals"></div>
-          </div>
-          <!-- Slide 1: 年額 -->
-          <div class="tp-slide">
-            <div class="tp-label">年払い固定費 — 家族合計</div>
-            <div class="tp-amount"><span class="yen">¥</span><span id="total-num-yr">0</span><span style="font-size:14px;font-weight:600;color:var(--text2);margin-left:4px;">/年</span></div>
-            <div class="tp-sub" id="total-sub-yr">0件の年払い契約</div>
-            <div id="member-totals-yr"></div>
-          </div>
-        </div>
+      <!-- Slide 0: 月額 -->
+      <div class="tp-slide active" id="tp-slide-0">
+        <div class="tp-label">月額固定費 — 家族合計</div>
+        <div class="tp-amount"><span class="yen">¥</span><span id="total-num">0</span></div>
+        <div class="tp-sub" id="total-sub">0件のサービス契約中</div>
+        <div id="member-totals"></div>
+      </div>
+      <!-- Slide 1: 年額 -->
+      <div class="tp-slide" id="tp-slide-1">
+        <div class="tp-label">年払い固定費 — 家族合計</div>
+        <div class="tp-amount"><span class="yen">¥</span><span id="total-num-yr">0</span><span style="font-size:14px;font-weight:600;color:var(--text2);margin-left:4px;">/年</span></div>
+        <div class="tp-sub" id="total-sub-yr">0件の年払い契約</div>
+        <div id="member-totals-yr"></div>
       </div>
       <!-- ドットインジケーター -->
       <div class="tp-dots">
@@ -1179,18 +1173,15 @@ function initTpSlider(){
   panel.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
   panel.addEventListener('touchend',e=>{
     const dx=e.changedTouches[0].clientX-sx;
-    if(Math.abs(dx)>40){
-      if(dx<0 && tpSlide===0) slideTo(1);
-      else if(dx>0 && tpSlide===1) slideTo(0);
-    }
+    if(Math.abs(dx)>40) slideTo(dx<0?1:0);
   });
 }
 function slideTo(n){
   tpSlide=n;
-  document.getElementById('tp-track').style.transform=`translateX(${-n*100}%)`;
+  document.getElementById('tp-slide-0').classList.toggle('active',n===0);
+  document.getElementById('tp-slide-1').classList.toggle('active',n===1);
   document.getElementById('tp-dot-0').classList.toggle('active',n===0);
   document.getElementById('tp-dot-1').classList.toggle('active',n===1);
-  // 月払い／年払い一覧の切り替え
   const isYr=n===1;
   document.getElementById('sub-list-label').style.display = isYr?'none':'block';
   document.getElementById('sub-list').style.display       = isYr?'none':'block';
