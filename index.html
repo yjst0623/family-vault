@@ -1182,7 +1182,7 @@ const mp = s => s.cycle === '年額' ? Math.round(s.price / 12) : s.price;
 // スマホ・インターネット資産のうち月額料金が登録されているものを「仮想サブスク」として返す
 function phoneAsAsSubs(user) {
   return ld(user, 'assets')
-    .filter(a => ['スマホ','インターネット','保険','ローン','その他'].includes(a.category) && a.monthly_price > 0 && a.payment_cycle !== '年払い')
+    .filter(a => ['スマホ','インターネット','保険','ローン','クラウド・AI','その他'].includes(a.category) && a.monthly_price > 0 && a.payment_cycle !== '年払い')
     .map(a => ({
       _fromAsset: true,
       id: a.id,
@@ -1374,7 +1374,7 @@ function renderAssetList(fc){
 }
 function onCatChange(){
   const cat = document.getElementById('a-cat').value;
-  const showPrice   = ['スマホ','インターネット','保険','ローン','その他'].includes(cat);
+  const showPrice   = ['スマホ','インターネット','保険','ローン','クラウド・AI','その他'].includes(cat);
   const showEndDate = ['保険','ローン'].includes(cat);
   document.getElementById('a-bank-fields').style.display    = cat === '銀行'  ? 'block' : 'none';
   document.getElementById('a-phone-fields').style.display   = cat === 'スマホ' ? 'block' : 'none';
@@ -1402,7 +1402,7 @@ function addAsset(){
     entry.monthly_price = parseInt(document.getElementById('a-price').value)||0;
     entry.sim_slot      = document.getElementById('a-sim').value;
   }
-  if(['スマホ','インターネット','保険','ローン','その他'].includes(cat)){
+  if(['スマホ','インターネット','保険','ローン','クラウド・AI','その他'].includes(cat)){
     entry.monthly_price   = parseInt(document.getElementById('a-price').value)||0;
     entry.payment_cycle   = document.getElementById('a-cycle').value;
   }
@@ -1457,7 +1457,7 @@ function editAsset(id){
     document.getElementById('a-price').value = a.monthly_price||'';
     document.getElementById('a-sim').value   = a.sim_slot||'';
   }
-  if(['スマホ','インターネット','保険','ローン','その他'].includes(a.category)){
+  if(['スマホ','インターネット','保険','ローン','クラウド・AI','その他'].includes(a.category)){
     document.getElementById('a-price').value = a.monthly_price||'';
     document.getElementById('a-cycle').value = a.payment_cycle||'月払い';
   }
@@ -1514,7 +1514,7 @@ function showAssetDtl(id){
       ['支払い終了', fmtEnd(a.payment_end)],
     );
   }
-  if(a.category==='その他'&&a.monthly_price){
+  if((a.category==='クラウド・AI'||a.category==='その他')&&a.monthly_price){
     rows.splice(2,0,['料金', fmtPrice(a.monthly_price, a.payment_cycle)]);
   }
   document.getElementById('dtl-asset-body').innerHTML=dRows(rows);
@@ -1723,7 +1723,12 @@ function toggleTask(row,name){
 }
 
 // ===== MODAL =====
-function openModal(id){document.getElementById(id).classList.add('open');}
+function openModal(id){
+  const el=document.getElementById(id);
+  el.classList.add('open');
+  const modal=el.querySelector('.modal');
+  if(modal) modal.scrollTop=0;
+}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function closeOut(e,id){if(e.target.id===id)closeModal(id);}
 
