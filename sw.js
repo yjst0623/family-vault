@@ -1,4 +1,4 @@
-const CACHE = 'family-vault-v6';
+const CACHE = 'family-vault-v7';
 const ASSETS = [
   './index.html',
   './manifest.json',
