@@ -997,6 +997,17 @@ body {
     <button class="btn-p btn-ghost" onclick="closeModal('modal-settings')">閉じる</button>
   </div>
 </div>
+<!-- Confirm delete dialog -->
+<div class="modal-overlay" id="modal-confirm-del" onclick="closeOut(event,'modal-confirm-del')">
+  <div class="modal" style="text-align:center;">
+    <div class="m-handle"></div>
+    <div style="font-size:32px;margin:8px 0 4px;">🗑️</div>
+    <div class="m-title" style="margin-bottom:6px;">削除の確認</div>
+    <div id="confirm-del-msg" style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6;"></div>
+    <button class="btn-p btn-danger" id="confirm-del-ok">削除する</button>
+    <button class="btn-p btn-ghost" onclick="closeModal('modal-confirm-del')">キャンセル</button>
+  </div>
+</div>
 <!-- Contact edit -->
 <div class="modal-overlay" id="modal-edit-contact" onclick="closeOut(event,'modal-edit-contact')">
   <div class="modal">
@@ -1407,7 +1418,7 @@ function showSubDtl(id){
   eb.style.display=own?'block':'none';
   db.style.display=own?'block':'none';
   eb.onclick=()=>editSub(id);
-  db.onclick=()=>{sv(et(),'subs',ld(et(),'subs').filter(x=>x.id!==id));closeModal('modal-sub-dtl');renderHome();};
+  db.onclick=()=>confirmDelete('このサブスクを削除しますか？\n削除したデータは元に戻せません。',()=>{sv(et(),'subs',ld(et(),'subs').filter(x=>x.id!==id));closeModal('modal-sub-dtl');renderHome();});
   openModal('modal-sub-dtl');
 }
 
@@ -1656,7 +1667,7 @@ function showAssetDtl(id){
   eb.style.display=own?'block':'none';
   db.style.display=own?'block':'none';
   eb.onclick=()=>editAsset(id);
-  db.onclick=()=>{sv(et(),'assets',ld(et(),'assets').filter(x=>x.id!==id));closeModal('modal-asset-dtl');renderAssets();renderHome();};
+  db.onclick=()=>confirmDelete('この契約・資産を削除しますか？\n削除したデータは元に戻せません。',()=>{sv(et(),'assets',ld(et(),'assets').filter(x=>x.id!==id));closeModal('modal-asset-dtl');renderAssets();renderHome();});
   openModal('modal-asset-dtl');
 }
 
@@ -1741,7 +1752,7 @@ function showItemDtl(id){
   eb.style.display=own?'block':'none';
   db.style.display=own?'block':'none';
   eb.onclick=()=>editItem(id);
-  db.onclick=()=>{sv(et(),'items',ld(et(),'items').filter(x=>x.id!==id));closeModal('modal-item-dtl');renderItems();};
+  db.onclick=()=>confirmDelete('この重要物メモを削除しますか？\n削除したデータは元に戻せません。',()=>{sv(et(),'items',ld(et(),'items').filter(x=>x.id!==id));closeModal('modal-item-dtl');renderItems();});
   openModal('modal-item-dtl');
 }
 
@@ -1893,6 +1904,12 @@ function openModal(id){
 }
 function closeModal(id){document.getElementById(id).classList.remove('open'); if(id==='modal-asset-dtl'){_pwVisible=false;}}
 function closeOut(e,id){if(e.target.id===id)closeModal(id);}
+function confirmDelete(msg, onConfirm) {
+  document.getElementById('confirm-del-msg').textContent = msg;
+  const btn = document.getElementById('confirm-del-ok');
+  btn.onclick = () => { closeModal('modal-confirm-del'); onConfirm(); };
+  openModal('modal-confirm-del');
+}
 
 // ===== UTILS =====
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
